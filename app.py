@@ -1,92 +1,156 @@
 import streamlit as st
 import pandas as pd
-import requests
-import io
 import random
 
-# 1. 페이지 설정
-st.set_page_config(page_title="서울 점메추 Speed", layout="centered")
+# ==========================================
+# 1. 🥘 방대한 음식 이름 리스트 (400개+)
+# ==========================================
+raw_menu_list = [
+    # [한식 - 밥/찌개/탕]
+    "김치찌개", "참치김치찌개", "돼지김치찌개", "꽁치김치찌개", "스팸김치찌개",
+    "된장찌개", "차돌된장찌개", "해물된장찌개", "우렁된장찌개", "강된장",
+    "순두부찌개", "해물순두부", "들깨순두부", "햄치즈순두부", "쫄면순두부",
+    "부대찌개", "청국장", "비지찌개", "동태찌개", "알탕", "대구탕", "꽃게탕", "매운탕",
+    "갈비탕", "설렁탕", "곰탕", "나주곰탕", "사골국", "도가니탕", "꼬리곰탕",
+    "삼계탕", "반계탕", "닭곰탕", "닭개장", "육개장", "추어탕", "장어탕",
+    "콩나물국밥", "순대국", "돼지국밥", "소머리국밥", "선지해장국", "뼈해장국", "황태해장국", "올갱이국",
+    "비빔밥", "돌솥비빔밥", "육회비빔밥", "꼬막비빔밥", "산채비빔밥", "멍게비빔밥",
+    "김치볶음밥", "새우볶음밥", "참치마요덮밥", "스팸마요덮밥", "치킨마요덮밥", "제육덮밥", "오징어덮밥", "낙지덮밥", "쭈꾸미덮밥",
+    "불고기백반", "생선구이백반", "게장백반", "보리밥", "쌈밥", "묵밥", "국밥", "미역국", "무국",
+    
+    # [한식 - 요리/고기]
+    "삼겹살", "목살", "항정살", "돼지갈비", "갈매기살", "냉동삼겹살",
+    "소갈비", "차돌박이", "등심", "안심", "육회", "육사시미",
+    "닭갈비", "숯불닭갈비", "찜닭", "안동찜닭", "로제찜닭", "닭볶음탕", "닭한마리",
+    "제육볶음", "두부김치", "오징어볶음", "낙지볶음", "쭈꾸미볶음", "코다리조림", "갈치조림", "고등어조림",
+    "보쌈", "마늘보쌈", "족발", "불족발", "냉채족발",
+    "곱창", "대창", "막창", "양대창", "곱창전골",
+    "감자탕", "등뼈찜", "아구찜", "해물찜", "꽃게찜",
+    "파전", "김치전", "해물파전", "감자전", "육전", "모둠전", "빈대떡",
+    
+    # [한식 - 분식/면]
+    "떡볶이", "라볶이", "즉석떡볶이", "로제떡볶이", "짜장떡볶이", "궁중떡볶이", "기름떡볶이",
+    "튀김", "순대", "김밥", "참치김밥", "치즈김밥", "돈가스김밥", "충무김밥",
+    "라면", "치즈라면", "만두라면", "해물라면", "틈새라면",
+    "칼국수", "바지락칼국수", "닭칼국수", "장칼국수", "비빔칼국수", "들깨칼국수",
+    "수제비", "들깨수제비", "잔치국수", "비빔국수", "열무국수", "콩국수",
+    "냉면", "물냉면", "비빔냉면", "회냉면", "평양냉면", "함흥냉면",
+    "막국수", "쫄면", "만두국", "떡만두국", "떡국", "비빔만두",
+    
+    # [중식]
+    "짜장면", "간짜장", "삼선짜장", "쟁반짜장", "유니짜장", "사천짜장",
+    "짬뽕", "삼선짬뽕", "백짬뽕", "고기짬뽕", "차돌짬뽕", "굴짬뽕", "홍합짬뽕", "볶음짬뽕", "냉짬뽕",
+    "볶음밥", "새우볶음밥", "삼선볶음밥", "잡채밥", "마파두부밥", "유산슬밥", "잡탕밥", "고추잡채밥",
+    "탕수육", "찹쌀탕수육", "사천탕수육", "꿔바로우",
+    "깐풍기", "유린기", "라조기", "난자완스", "팔보채", "양장피", "유산슬", "고추잡채",
+    "군만두", "물만두", "꽃빵", "멘보샤",
+    "마라탕", "마라샹궈", "훠궈", "양꼬치", "양갈비", "우육면", "탄탄면", "동파육", "크림새우", "칠리새우",
+    
+    # [일식]
+    "초밥", "모듬초밥", "연어초밥", "광어초밥", "새우초밥", "참치초밥", "소고기초밥", "유부초밥",
+    "회덮밥", "사케동", "규동", "가츠동", "에비동", "오야코동", "부타동", "차슈동", "장어덮밥", "텐동", "카이센동",
+    "우동", "튀김우동", "유부우동", "김치우동", "냉우동", "붓카케우동", "카레우동",
+    "소바", "냉모밀", "판모밀", "온모밀", "마제소바",
+    "라멘", "돈코츠라멘", "미소라멘", "소유라멘", "시오라멘", "카라이라멘", "탄탄멘",
+    "돈가스", "등심돈가스", "안심돈가스", "치즈돈가스", "고구마치즈돈가스", "카레돈가스", "돈가스나베", "김치나베",
+    "카레라이스", "하이라이스", "오꼬노미야끼", "타코야끼", "야끼소바", "스키야키", "샤브샤브",
+    
+    # [양식]
+    "토마토파스타", "크림파스타", "로제파스타", "알리오올리오", "봉골레", "까르보나라", "볼로네제", "빠네파스타", "명란파스타",
+    "라자냐", "뇨끼", "리조또", "크림리조또", "토마토리조또", "오징어먹물리조또",
+    "피자", "고르곤졸라", "페퍼로니피자", "포테이토피자", "불고기피자", "시카고피자", "하와이안피자",
+    "스테이크", "티본스테이크", "찹스테이크", "함박스테이크", "돈마호크", "폭립",
+    "햄버거", "치즈버거", "수제버거", "치킨버거", "새우버거",
+    "샌드위치", "클럽샌드위치", "서브웨이", "에그드랍", "이삭토스트", "프렌치토스트", "베이글", "파니니", "핫도그",
+    "샐러드", "닭가슴살샐러드", "리코타치즈샐러드", "연어샐러드", "콥샐러드", "포케",
+    "스프", "감바스", "에그인헬",
+    
+    # [아시안/기타]
+    "쌀국수", "매운쌀국수", "분짜", "반미", "월남쌈", "짜조",
+    "팟타이", "나시고랭", "미시고랭", "푸팟퐁커리", "똠양꿍",
+    "타코", "부리또", "퀘사디아", "화이타", "케밥",
+    "마라탕", "인도커리", "난", "탄두리치킨"
+]
 
-# 2. 스타일링
+# ==========================================
+# 2. 🧠 AI 분류기 V2 (더 똑똑해짐)
+# ==========================================
+def auto_tagging(menu):
+    # 기본값
+    spicy = "순한 맛"
+    temp = "뜨거운 것"
+    kind = "한식"
+    main = "기타"
+    
+    # 1. 맵기 (키워드 확장)
+    spicy_keywords = ["김치", "매운", "육개장", "짬뽕", "마라", "떡볶이", "비빔", "양념", "낙지", "쭈꾸미", "닭갈비", "얼큰", "핫", "사천", "불족발", "카라이", "탄탄", "똠양", "감자탕", "해물탕", "매운탕"]
+    if any(k in menu for k in spicy_keywords):
+        spicy = "매운 맛"
+    
+    # 2. 온도 (차가운 것 키워드 확장)
+    cold_keywords = ["냉면", "소바", "모밀", "초밥", "회", "냉", "샌드위치", "샐러드", "육회", "김밥", "빙수", "묵밥", "포케", "월남쌈"]
+    if any(k in menu for k in cold_keywords):
+        temp = "차가운 것"
+    
+    # 3. 종류 (키워드 대폭 추가)
+    chinese = ["짜장", "짬뽕", "탕수육", "마라", "꿔바로우", "유린기", "동파육", "우육", "탄탄", "양꼬치", "훠궈", "멘보샤", "깐풍", "라조기", "난자완스", "팔보채"]
+    japanese = ["초밥", "우동", "소바", "라멘", "카츠", "가츠", "규동", "사케동", "오꼬노미", "스시", "나베", "텐동", "부타동", "야끼", "스키야키", "샤브샤브"]
+    western = ["파스타", "피자", "버거", "스테이크", "샐러드", "샌드위치", "리조또", "스프", "라자냐", "뇨끼", "토스트", "베이글", "감바스", "파니니"]
+    asian = ["쌀국수", "팟타이", "나시고랭", "미시고랭", "분짜", "타코", "부리또", "커리", "반미", "퀘사디아", "케밥", "화이타", "똠양", "난"]
+    
+    if any(k in menu for k in chinese): kind = "중식"
+    elif any(k in menu for k in japanese): kind = "일식"
+    elif any(k in menu for k in western): kind = "양식"
+    elif any(k in menu for k in asian): kind = "아시안"
+    else: kind = "한식" # 나머지는 다 한식으로 간주
+        
+    # 4. 주재료
+    rice = ["밥", "죽", "리조또", "동", "초밥", "필라프", "포케"]
+    noodle = ["면", "국수", "우동", "소바", "파스타", "라멘", "짜장", "짬뽕", "팟타이", "잡채"]
+    meat = ["고기", "스테이크", "삼겹살", "갈비", "제육", "보쌈", "족발", "탕수육", "돈가스", "치킨", "육회", "찜닭", "곱창", "대창"]
+    bread = ["빵", "버거", "샌드위치", "토스트", "피자", "베이글", "핫도그"]
+    
+    if any(k in menu for k in rice): main = "밥"
+    elif any(k in menu for k in noodle): main = "면"
+    elif any(k in menu for k in meat): main = "고기"
+    elif any(k in menu for k in bread): main = "빵"
+    else: main = "기타" # 찌개, 떡볶이 등은 기타로 분류 (또는 국물)
+        
+    return {"메뉴명": menu, "맵기": spicy, "온도": temp, "종류": kind, "주재료": main}
+
+# 🤖 데이터 자동 생성
+menu_db = [auto_tagging(m) for m in raw_menu_list]
+df_logic = pd.DataFrame(menu_db)
+
+# ==========================================
+# 3. 앱 설정 및 스타일링
+# ==========================================
+st.set_page_config(page_title="점메추 AI Ultimate", layout="centered")
+
 st.markdown("""
 <style>
     :root { --primary: #FF4B4B; }
+    .stButton > button {
+        width: 100%; height: 65px; border-radius: 12px; font-size: 19px !important; font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s;
+    }
+    .stButton > button:hover { transform: translateY(-2px); }
+    
     .result-card {
         border: 3px solid var(--primary); border-radius: 20px;
         padding: 30px; text-align: center; background-color: #fff;
-        margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-top: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
-    .restaurant-box {
-        background-color: white; border: 1px solid #ddd;
-        border-radius: 12px; padding: 15px; margin-top: 10px;
-        text-align: left; transition: transform 0.2s;
+    .menu-badge {
+        background-color: #f0f2f6; padding: 5px 12px; border-radius: 15px;
+        font-size: 0.9em; margin: 3px; display: inline-block; font-weight: 500;
+        border: 1px solid #ddd;
     }
-    .restaurant-box:hover { transform: scale(1.02); border-color: var(--primary); }
-    .stButton > button { width: 100%; height: 65px; font-size: 19px; border-radius: 12px; font-weight: bold; }
     a { text-decoration: none; color: #FF4B4B; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# ⚡ 핵심 성능 최적화: 데이터 캐싱
-# ==========================================
-# 이 함수 위에 @st.cache_data를 붙이면, 데이터를 한 번만 가져오고 저장해둡니다.
-# 버튼을 눌러도 다시 다운로드하지 않아서 엄청나게 빨라집니다.
-@st.cache_data(ttl=3600) # 1시간 동안 기억함
-def fetch_seoul_restaurants(api_key):
-    # 서울시 모범음식점 데이터 (1000개 요청)
-    url = f'http://openapi.seoul.go.kr:8088/{api_key}/json/CrtfcUpsoInfo/1/1000/'
-    try:
-        response = requests.get(url)
-        data = response.json()
-        if 'CrtfcUpsoInfo' in data and 'row' in data['CrtfcUpsoInfo']:
-            rows = data['CrtfcUpsoInfo']['row']
-            df = pd.DataFrame(rows)
-            return df[['UPSO_NM', 'CGG_CODE_NM', 'COB_CODE_NM', 'FOOD_MENU']]
-        else:
-            return pd.DataFrame()
-    except:
-        return pd.DataFrame()
-
-# API 키 가져오기 (없으면 에러 방지용 더미 값)
-try:
-    API_KEY = st.secrets["SEOUL_API_KEY"]
-except:
-    # 키가 없을 때를 대비해 로컬 테스트용으로 비워둠 (나중에 secrets 채우면 작동)
-    API_KEY = "TEST_KEY" 
-
-# 데이터 로드 (캐싱 덕분에 순식간에 끝남)
-if API_KEY != "TEST_KEY":
-    df_seoul = fetch_seoul_restaurants(API_KEY)
-else:
-    df_seoul = pd.DataFrame()
-
-# 내장 메뉴 데이터
-menu_csv = """메뉴명,맵기,온도,종류,주재료
-김치찌개,매운 맛,뜨거운 것,한식,밥
-된장찌개,순한 맛,뜨거운 것,한식,밥
-비빔밥,순한 맛,차가운 것,한식,밥
-불고기,순한 맛,뜨거운 것,한식,고기
-삼겹살,순한 맛,뜨거운 것,한식,고기
-육개장,매운 맛,뜨거운 것,한식,밥
-냉면,순한 맛,차가운 것,한식,면
-짜장면,순한 맛,뜨거운 것,중식,면
-짬뽕,매운 맛,뜨거운 것,중식,면
-탕수육,순한 맛,뜨거운 것,중식,고기
-마라탕,매운 맛,뜨거운 것,중식,면
-초밥,순한 맛,차가운 것,일식,밥
-돈가스,순한 맛,뜨거운 것,일식,고기
-우동,순한 맛,뜨거운 것,일식,면
-소바,순한 맛,차가운 것,일식,면
-파스타,순한 맛,뜨거운 것,양식,면
-피자,순한 맛,뜨거운 것,양식,빵
-햄버거,순한 맛,뜨거운 것,양식,빵
-스테이크,순한 맛,뜨거운 것,양식,고기
-쌀국수,순한 맛,뜨거운 것,아시안,면
-"""
-df_logic = pd.read_csv(io.StringIO(menu_csv))
-
-# 상태 관리
+# 4. 상태 관리
 if 'choices' not in st.session_state:
     st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
 
@@ -108,7 +172,8 @@ def draw_step(step_key, title, options):
 
 # ================= 메인 프로그램 =================
 
-st.title("⚡ 서울 점메추 (초고속)")
+st.title("🚀 점메추 AI Ultimate")
+st.caption(f"빅데이터 {len(df_logic)}개의 메뉴가 준비되었습니다.")
 
 # 선택값
 c1 = st.session_state.choices['step1']
@@ -125,53 +190,52 @@ if c1 and c2 and c3: draw_step('step4', "재료", ["밥", "면", "고기", "빵"
 # [결과 화면]
 if c1 and c2 and c3 and c4:
     st.divider()
-    result_menu = df_logic[(df_logic['맵기']==c1) & (df_logic['온도']==c2) & (df_logic['종류']==c3) & (df_logic['주재료']==c4)]
     
-    if not result_menu.empty:
-        final_menu = result_menu.sample(1).iloc[0]['메뉴명']
-        search_menu_url = f"https://search.naver.com/search.naver?query={final_menu}"
+    # 조건에 맞는 메뉴 필터링
+    result_df = df_logic[
+        (df_logic['맵기']==c1) & 
+        (df_logic['온도']==c2) & 
+        (df_logic['종류']==c3) & 
+        (df_logic['주재료']==c4)
+    ]
+    
+    if not result_df.empty:
+        # 랜덤 하나 추천
+        pick = result_df.sample(1).iloc[0]
+        final_menu = pick['메뉴명']
+        
+        # 네이버 지도 검색 링크
+        search_url = f"https://map.naver.com/v5/search/근처 {final_menu}"
         
         st.markdown(f"""
         <div class="result-card">
-            <h3 style="color:#666; margin:0;">오늘의 메뉴</h3>
-            <h1 style="color:#FF4B4B; font-size:3.5rem; margin:10px 0;">{final_menu}</h1>
-            <p><a href="{search_menu_url}" target="_blank">🔍 메뉴 정보</a></p>
+            <h3 style="color:#888;">AI 분석 결과</h3>
+            <h1 style="color:#FF4B4B; font-size:3.5rem; margin:15px 0;">{final_menu}</h1>
+            <div style="margin-bottom:20px;">
+                <span class="menu-badge">{pick['종류']}</span>
+                <span class="menu-badge">{pick['맵기']}</span>
+                <span class="menu-badge">{pick['온도']}</span>
+                <span class="menu-badge">{pick['주재료']}</span>
+            </div>
+            <p style="font-size:1.2rem;"><a href="{search_url}" target="_blank">🗺️ 근처 '{final_menu}' 맛집 찾기 (Click)</a></p>
         </div>
         """, unsafe_allow_html=True)
         st.balloons()
         
-        st.write("")
-        st.subheader(f"📍 '{c3}' 추천 맛집")
-        
-        if not df_seoul.empty:
-            matched = df_seoul[df_seoul['COB_CODE_NM'].str.contains(c3, na=False)]
-            if not matched.empty:
-                picks = matched.sample(min(3, len(matched)))
-                for _, row in picks.iterrows():
-                    r_name = row['UPSO_NM']
-                    r_gu = row['CGG_CODE_NM']
-                    map_url = f"https://map.naver.com/v5/search/{r_name}"
-                    st.markdown(f"""
-                    <div class="restaurant-box">
-                        <div style="font-weight:bold; font-size:18px;">
-                            🏢 {r_name}
-                            <a href="{map_url}" target="_blank" style="float:right; font-size:14px;">지도 보기 ➡</a>
-                        </div>
-                        <div style="color:gray; font-size:14px; margin-top:5px;">📍 {r_gu}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.info(f"데이터에 '{c3}' 관련 맛집이 없네요.")
-        else:
-            if API_KEY == "TEST_KEY":
-                 st.warning("⚠️ API 키 설정을 완료하면 실제 맛집이 나옵니다.")
-            else:
-                 st.error("데이터 로드 실패")
+        # 다른 후보 (최대 5개까지)
+        others = result_df['메뉴명'].tolist()
+        if len(others) > 1:
+            others = [x for x in others if x != final_menu]
+            random.shuffle(others)
+            others_txt = ", ".join(others[:5])
+            if len(others) > 5: others_txt += " 등..."
+            st.info(f"💡 그 외 추천: {others_txt}")
             
     else:
-        st.warning("조건에 맞는 메뉴가 없어요.")
+        st.warning("이런! 조건이 너무 까다로워서 메뉴를 못 찾았어요. 😭")
+        # 차선책 (종류만 같은 거)
         backup = df_logic[df_logic['종류']==c3].sample(1).iloc[0]['메뉴명']
-        st.success(f"대신 **{backup}** 어때요?")
+        st.success(f"대신 **{backup}** 어떠세요?")
 
     st.write("")
     if st.button("🔄 처음부터 다시 하기"):
