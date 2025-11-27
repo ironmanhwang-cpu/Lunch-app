@@ -5,7 +5,7 @@ import io
 import random
 
 # 1. 페이지 설정
-st.set_page_config(page_title="서울 점메추 Live", layout="centered")
+st.set_page_config(page_title="서울 점메추 Speed", layout="centered")
 
 # 2. 스타일링
 st.markdown("""
@@ -22,22 +22,17 @@ st.markdown("""
         text-align: left; transition: transform 0.2s;
     }
     .restaurant-box:hover { transform: scale(1.02); border-color: var(--primary); }
-    .stButton > button { width: 100%; height: 60px; font-size: 18px; border-radius: 12px; font-weight: bold; }
+    .stButton > button { width: 100%; height: 65px; font-size: 19px; border-radius: 12px; font-weight: bold; }
     a { text-decoration: none; color: #FF4B4B; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔐 비밀 금고에서 API 키 가져오기
+# ⚡ 핵심 성능 최적화: 데이터 캐싱
 # ==========================================
-# 사용자에게 묻지 않고, 서버에 저장된 키를 몰래 가져옵니다.
-try:
-    API_KEY = st.secrets["SEOUL_API_KEY"]
-except:
-    # 로컬에서 테스트하거나 키가 없을 때를 대비한 예외처리
-    st.error("🚨 API 키가 설정되지 않았습니다. [Settings] > [Secrets]를 확인하세요.")
-    st.stop()
-
+# 이 함수 위에 @st.cache_data를 붙이면, 데이터를 한 번만 가져오고 저장해둡니다.
+# 버튼을 눌러도 다시 다운로드하지 않아서 엄청나게 빨라집니다.
+@st.cache_data(ttl=3600) # 1시간 동안 기억함
 def fetch_seoul_restaurants(api_key):
     # 서울시 모범음식점 데이터 (1000개 요청)
     url = f'http://openapi.seoul.go.kr:8088/{api_key}/json/CrtfcUpsoInfo/1/1000/'
@@ -52,6 +47,19 @@ def fetch_seoul_restaurants(api_key):
             return pd.DataFrame()
     except:
         return pd.DataFrame()
+
+# API 키 가져오기 (없으면 에러 방지용 더미 값)
+try:
+    API_KEY = st.secrets["SEOUL_API_KEY"]
+except:
+    # 키가 없을 때를 대비해 로컬 테스트용으로 비워둠 (나중에 secrets 채우면 작동)
+    API_KEY = "TEST_KEY" 
+
+# 데이터 로드 (캐싱 덕분에 순식간에 끝남)
+if API_KEY != "TEST_KEY":
+    df_seoul = fetch_seoul_restaurants(API_KEY)
+else:
+    df_seoul = pd.DataFrame()
 
 # 내장 메뉴 데이터
 menu_csv = """메뉴명,맵기,온도,종류,주재료
@@ -100,11 +108,7 @@ def draw_step(step_key, title, options):
 
 # ================= 메인 프로그램 =================
 
-st.title("📡 서울 점메추 Live")
-st.caption("서울시 모범음식점 데이터를 실시간으로 분석합니다.")
-
-# 데이터 미리 로드 (키는 코드 내부에 숨겨져 있음)
-df_seoul = fetch_seoul_restaurants(API_KEY)
+st.title("⚡ 서울 점메추 (초고속)")
 
 # 선택값
 c1 = st.session_state.choices['step1']
@@ -129,15 +133,15 @@ if c1 and c2 and c3 and c4:
         
         st.markdown(f"""
         <div class="result-card">
-            <h3>오늘의 메뉴</h3>
-            <h1 style="color:#FF4B4B; font-size:3rem;">{final_menu}</h1>
+            <h3 style="color:#666; margin:0;">오늘의 메뉴</h3>
+            <h1 style="color:#FF4B4B; font-size:3.5rem; margin:10px 0;">{final_menu}</h1>
             <p><a href="{search_menu_url}" target="_blank">🔍 메뉴 정보</a></p>
         </div>
         """, unsafe_allow_html=True)
         st.balloons()
         
         st.write("")
-        st.subheader(f"📍 '{c3}' 추천 맛집 (서울시 인증)")
+        st.subheader(f"📍 '{c3}' 추천 맛집")
         
         if not df_seoul.empty:
             matched = df_seoul[df_seoul['COB_CODE_NM'].str.contains(c3, na=False)]
@@ -157,9 +161,12 @@ if c1 and c2 and c3 and c4:
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.info(f"데이터에 '{c3}' 관련 모범음식점이 부족합니다.")
+                st.info(f"데이터에 '{c3}' 관련 맛집이 없네요.")
         else:
-            st.error("서울시 데이터 연결 실패 (API 키 확인 필요)")
+            if API_KEY == "TEST_KEY":
+                 st.warning("⚠️ API 키 설정을 완료하면 실제 맛집이 나옵니다.")
+            else:
+                 st.error("데이터 로드 실패")
             
     else:
         st.warning("조건에 맞는 메뉴가 없어요.")
