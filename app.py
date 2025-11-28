@@ -2,44 +2,114 @@ import streamlit as st
 import pandas as pd
 import random
 
-# 1. 페이지 설정 (가장 윗줄에 있어야 함)
-st.set_page_config(page_title="점메추 GPS", layout="centered")
+# 1. 페이지 설정
+st.set_page_config(page_title="점메추 Quantum", layout="centered")
 
-# 2. 데이터 로드 (캐싱 적용)
+# 2. 데이터 로드 (350개 이상 + 자동 태깅)
 @st.cache_data
 def load_data():
-    # 메뉴 데이터 리스트
     raw_list = [
-        "김치찌개", "된장찌개", "순두부찌개", "비빔밥", "불고기", "삼겹살", "갈비탕", "육개장", "떡볶이",
-        "짜장면", "짬뽕", "탕수육", "마라탕", "마라샹궈", "초밥", "돈가스", "우동", "소바", "라멘",
-        "파스타", "피자", "햄버거", "스테이크", "쌀국수", "팟타이", "족발", "보쌈", "닭갈비", "찜닭",
-        "부대찌개", "청국장", "동태찌개", "설렁탕", "곰탕", "삼계탕", "뼈해장국", "순대국", "콩나물국밥",
-        "제육덮밥", "오징어덮밥", "김치볶음밥", "오므라이스", "카레라이스", "하이라이스",
-        "칼국수", "수제비", "잔치국수", "비빔국수", "냉면", "쫄면", "만두국", "라면", "김밥", "순대",
-        "양꼬치", "훠궈", "우육면", "탄탄면", "깐풍기", "유린기", "고추잡채", "잡채밥",
-        "규동", "가츠동", "사케동", "텐동", "오꼬노미야끼", "타코야끼", "샤브샤브", "스키야키",
-        "리조또", "라자냐", "뇨끼", "샐러드", "포케", "샌드위치", "토스트", "베이글", "브런치",
-        "타코", "부리또", "퀘사디아", "반미", "분짜", "나시고랭"
+        # [한식 - 탕/찌개/국]
+        "김치찌개", "참치김치찌개", "돼지김치찌개", "스팸김치찌개", "꽁치김치찌개",
+        "된장찌개", "차돌된장찌개", "해물된장찌개", "우렁된장찌개", "냉이된장찌개",
+        "순두부찌개", "해물순두부", "햄치즈순두부", "들깨순두부", "만두순두부", "곱창순두부",
+        "부대찌개", "존슨탕", "청국장", "비지찌개", "동태찌개", "알탕", "대구탕", "꽃게탕", "조기매운탕",
+        "갈비탕", "왕갈비탕", "설렁탕", "곰탕", "나주곰탕", "사골국", "도가니탕", "꼬리곰탕", "우족탕",
+        "삼계탕", "반계탕", "들깨삼계탕", "누룽지백숙", "닭곰탕", "닭개장", "초계국수",
+        "육개장", "추어탕", "통추어탕", "장어탕", "감자탕", "뼈해장국", "선지해장국", "황태해장국", "북엇국",
+        "콩나물국밥", "순대국", "얼큰순대국", "돼지국밥", "소머리국밥", "내장탕", "미역국", "소고기무국",
+        "떡만두국", "사골만두국", "매생이굴국", "재첩국", "올갱이국",
+        
+        # [한식 - 밥/죽]
+        "비빔밥", "돌솥비빔밥", "산채비빔밥", "육회비빔밥", "꼬막비빔밥", "낙지비빔밥", "멍게비빔밥",
+        "김치볶음밥", "참치김치볶음밥", "새우볶음밥", "오므라이스", "소고기볶음밥",
+        "제육덮밥", "오징어덮밥", "낙지덮밥", "쭈꾸미덮밥", "불고기덮밥", "잡채밥", "카레라이스", "짜장밥", "치킨마요덮밥", "참치마요덮밥", "스팸마요덮밥", "장조림버터비빔밥",
+        "쌈밥", "제육쌈밥", "우렁쌈밥", "보리밥", "강된장보리밥", "생선구이백반", "게장백반", "불고기백반", "기사식당불백",
+        "묵밥", "도토리묵밥", "전복죽", "야채죽", "소고기죽", "호박죽", "팥죽", "낙지김치죽",
+        
+        # [한식 - 고기/요리]
+        "삼겹살", "냉동삼겹살", "목살", "항정살", "가브리살", "돼지갈비", "매운돼지갈비찜", "간장갈비찜",
+        "소갈비", "소갈비찜", "LA갈비", "차돌박이", "등심", "안심", "육회", "육사시미", "곱창", "대창", "막창", "양대창", "곱창전골",
+        "닭갈비", "숯불닭갈비", "물닭갈비", "찜닭", "안동찜닭", "로제찜닭", "닭볶음탕", "닭한마리", "치킨", "양념치킨", "파닭",
+        "제육볶음", "두부김치", "오징어볶음", "낙지볶음", "쭈꾸미볶음", "코다리조림", "갈치조림", "고등어조림", "고등어구이", "삼치구이", "임연수구이",
+        "보쌈", "마늘보쌈", "굴보쌈", "족발", "불족발", "냉채족발", "미니족",
+        "아구찜", "해물찜", "대구뽈찜", "등뼈찜", "파전", "해물파전", "김치전", "감자전", "육전", "모둠전", "빈대떡", "도토리묵",
+        
+        # [한식 - 분식]
+        "떡볶이", "라볶이", "즉석떡볶이", "로제떡볶이", "짜장떡볶이", "궁중떡볶이", "기름떡볶이", "마라떡볶이",
+        "튀김", "오징어튀김", "새우튀김", "김말이", "순대", "순대볶음", "백순대",
+        "김밥", "야채김밥", "참치김밥", "치즈김밥", "돈가스김밥", "새우김밥", "충무김밥", "키토김밥", "주먹밥",
+        "라면", "치즈라면", "만두라면", "해물라면", "부대라면", "짬뽕라면", "비빔면", "짜파게티",
+        "칼국수", "바지락칼국수", "닭칼국수", "장칼국수", "비빔칼국수", "들깨칼국수", "팥칼국수", "샤브샤브칼국수",
+        "수제비", "들깨수제비", "얼큰수제비", "잔치국수", "비빔국수", "열무국수", "콩국수",
+        "냉면", "물냉면", "비빔냉면", "회냉면", "평양냉면", "함흥냉면", "진주냉면",
+        "막국수", "비빔막국수", "물막국수", "쫄면", "물쫄면", "비빔만두",
+        
+        # [중식]
+        "짜장면", "간짜장", "삼선짜장", "쟁반짜장", "유니짜장", "사천짜장", "고추짜장",
+        "짬뽕", "삼선짬뽕", "백짬뽕", "고기짬뽕", "차돌짬뽕", "굴짬뽕", "홍합짬뽕", "볶음짬뽕", "냉짬뽕", "순두부짬뽕",
+        "볶음밥", "새우볶음밥", "삼선볶음밥", "게살볶음밥", "잡채밥", "마파두부밥", "유산슬밥", "잡탕밥", "고추잡채밥", "중화비빔밥",
+        "탕수육", "찹쌀탕수육", "사천탕수육", "광동식탕수육", "꿔바로우",
+        "깐풍기", "유린기", "라조기", "난자완스", "팔보채", "양장피", "유산슬", "고추잡채", "경장육사", "어향가지",
+        "군만두", "물만두", "찐만두", "꽃빵", "멘보샤", "크림새우", "칠리새우", "깐쇼새우",
+        "마라탕", "마라샹궈", "마라반", "훠궈", "양꼬치", "양갈비", "지삼선", "토마토계란볶음", "우육면", "탄탄면", "동파육",
+        
+        # [일식]
+        "초밥", "모듬초밥", "특선초밥", "연어초밥", "광어초밥", "새우초밥", "참치초밥", "소고기초밥", "유부초밥", "후토마키",
+        "회덮밥", "사케동", "연어뱃살덮밥", "규동", "가츠동", "에비동", "오야코동", "부타동", "차슈동", "장어덮밥", "우나기동", "텐동", "카이센동", "스테키동",
+        "우동", "튀김우동", "유부우동", "김치우동", "냉우동", "붓카케우동", "카레우동", "크림우동", "니꾸우동",
+        "소바", "냉모밀", "판모밀", "온모밀", "마제소바", "아부라소바", "자루소바",
+        "라멘", "돈코츠라멘", "미소라멘", "소유라멘", "시오라멘", "카라이라멘", "탄탄멘", "츠케멘", "나가사키짬뽕",
+        "돈가스", "등심돈가스", "안심돈가스", "치즈돈가스", "고구마치즈돈가스", "카레돈가스", "경양식돈가스", "생선가스", "멘치카츠",
+        "돈가스나베", "김치나베", "밀푀유나베", "스키야키", "샤브샤브", "편백찜", "모츠나베",
+        "일본카레", "하이라이스", "오꼬노미야끼", "타코야끼", "야끼소바",
+        
+        # [양식]
+        "토마토파스타", "미트볼파스타", "해산물토마토파스타", "아라비아따", "뽀모도로",
+        "크림파스타", "까르보나라", "해산물크림파스타", "베이컨크림파스타", "명란크림파스타", "빠네파스타",
+        "로제파스타", "새우로제파스타", "게살로제파스타",
+        "오일파스타", "알리오올리오", "봉골레", "명란오일파스타", "바질페스토파스타", "엔초비파스타",
+        "투움바파스타", "라자냐", "뇨끼", "감자뇨끼", "단호박뇨끼",
+        "리조또", "크림리조또", "토마토리조또", "오징어먹물리조또", "전복리조또", "버섯리조또",
+        "피자", "고르곤졸라", "페퍼로니피자", "포테이토피자", "불고기피자", "시카고피자", "하와이안피자", "마르게리따", "루꼴라피자",
+        "스테이크", "티본스테이크", "찹스테이크", "함박스테이크", "돈마호크", "폭립", "비프웰링턴", "바베큐플래터",
+        "햄버거", "치즈버거", "수제버거", "치킨버거", "새우버거", "베이컨버거", "머쉬룸버거",
+        "샌드위치", "클럽샌드위치", "에그샌드위치", "참치샌드위치", "치킨샌드위치", "잠봉뵈르", "반미샌드위치",
+        "토스트", "프렌치토스트", "이삭토스트", "베이글", "크림치즈베이글", "연어베이글", "파니니", "핫도그",
+        "샐러드", "닭가슴살샐러드", "리코타치즈샐러드", "연어샐러드", "콥샐러드", "시저샐러드", "파스타샐러드", "포케", "연어포케", "참치포케",
+        "양송이스프", "콘스프", "클램차우더", "단호박스프", "감바스", "에그인헬", "샥슈카", "그라탕",
+        
+        # [아시안/기타]
+        "쌀국수", "양지쌀국수", "차돌쌀국수", "매운쌀국수", "해산물쌀국수",
+        "분짜", "반미", "월남쌈", "짜조", "스프링롤",
+        "팟타이", "나시고랭", "미시고랭", "푸팟퐁커리", "똠양꿍", "그린커리", "레드커리", "파인애플볶음밥",
+        "타코", "부리또", "퀘사디아", "화이타", "엔칠라다", "치미창가", "나초",
+        "케밥", "양고기케밥", "치킨케밥", "인도커리", "버터치킨커리", "난", "갈릭난", "탄두리치킨", "라씨"
     ]
     
-    # 자동 분류 로직
+    # 🤖 AI 자동 분류기 (더 정교해짐)
     def auto_tag(m):
         spicy, temp, kind, main = "순한 맛", "뜨거운 것", "한식", "기타"
         
-        # 맵기
-        if any(k in m for k in ["김치","매운","짬뽕","마라","떡볶이","육개장","비빔","낙지","얼큰","닭갈비","부대","탄탄","타코"]): spicy="매운 맛"
-        # 온도
-        if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","빙수","쫄면","막국수","포케","월남쌈"]): temp="차가운 것"
-        # 종류
-        if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","유린기","양꼬치","훠궈","깐풍"]): kind="중식"
-        elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","가츠","규동","텐동","오꼬노미","스시","샤브"]): kind="일식"
-        elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","스프","브런치"]): kind="양식"
-        elif any(k in m for k in ["쌀국수","팟타이","나시고랭","분짜","타코","부리또","반미","커리"]): kind="아시안"
-        # 주재료
-        if any(k in m for k in ["밥","죽","리조또","동","초밥","필라프","포케","국밥","백반"]): main="밥"
-        elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","팟타이","잡채"]): main="면"
-        elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","족발","탕수육","돈가스","치킨","찜닭","곱창"]): main="고기"
-        elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","타코"]): main="빵"
+        # 1. 맵기 키워드
+        spicy_keys = ["김치","매운","짬뽕","마라","떡볶이","육개장","비빔","양념","낙지","쭈꾸미","닭갈비","얼큰","핫","사천","불족발","카라이","탄탄","똠양","감자탕","해물탕","아구찜","해물찜","닭발","고추","레드","아라비아따","화이타"]
+        if any(k in m for k in spicy_keys): spicy = "매운 맛"
+            
+        # 2. 온도 키워드 (차가운 것)
+        cold_keys = ["냉","소바","초밥","회","샐러드","샌드위치","김밥","빙수","묵밥","포케","월남쌈","육회","쫄면","막국수","비빔면","족발","보쌈","양장피","냉채"]
+        if any(k in m for k in cold_keys): temp = "차가운 것"
+            
+        # 3. 종류 분류
+        if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","유린기","동파육","우육","탄탄","양꼬치","훠궈","멘보샤","깐풍","라조기","난자완스","팔보채","중화","어향"]): kind="중식"
+        elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","가츠","규동","사케동","오꼬노미","스시","나베","텐동","부타동","야끼","스키야키","샤브샤브","일식","후토마키","장어","오야코"]): kind="일식"
+        elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","스프","라자냐","뇨끼","토스트","베이글","감바스","파니니","핫도그","바베큐","폭립","그라탕","잠봉","브런치"]): kind="양식"
+        elif any(k in m for k in ["쌀국수","팟타이","나시고랭","미시고랭","분짜","타코","부리또","커리","반미","퀘사디아","케밥","화이타","똠양","난","탄두리","짜조","스프링롤","치미창가"]): kind="아시안"
+        
+        # 4. 주재료 분류
+        if any(k in m for k in ["밥","죽","리조또","동","초밥","필라프","포케","볶음밥","덮밥","국밥","백반","비빔밥"]): main="밥"
+        elif any(k in m for k in ["면","국수","우동","소바","파스타","라멘","짜장","짬뽕","팟타이","잡채","소면","스파게티"]): main="면"
+        elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","족발","탕수육","돈가스","치킨","육회","찜닭","곱창","대창","막창","차돌","등심","안심","함박","동파육","불고기","두루치기","샤브샤브"]): main="고기"
+        elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그","케밥","반미","타코","부리또","퀘사디아"]): main="빵"
         
         return {"메뉴명":m, "맵기":spicy, "온도":temp, "종류":kind, "주재료":main}
     
@@ -47,116 +117,126 @@ def load_data():
 
 df_logic = load_data()
 
-# 3. 상태 관리
+# ==========================================
+# 3. 로직 및 UI
+# ==========================================
 if 'choices' not in st.session_state:
     st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
 
 def set_choice(step, value):
     st.session_state.choices[step] = value
 
-# 4. 메인 화면
-st.title("📍 점메추 GPS")
-st.write("내 주변 맛집을 바로 찾아드립니다.")
-st.markdown("---")
+# 🧮 수학적 점수 계산 알고리즘 (Vector Scoring)
+def recommend_food(df, choices):
+    # 점수 컬럼 초기화
+    df['score'] = 0
+    
+    # 가중치 부여
+    # 1. 종류(장르)가 다르면 감점 폭이 큼 (필터링 효과)
+    df.loc[df['종류'] == choices['step3'], 'score'] += 40
+    
+    # 2. 주재료가 맞으면 고득점
+    df.loc[df['주재료'] == choices['step4'], 'score'] += 30
+    
+    # 3. 맵기와 온도는 취향 점수
+    df.loc[df['맵기'] == choices['step1'], 'score'] += 15
+    df.loc[df['온도'] == choices['step2'], 'score'] += 15
+    
+    # 점수 높은 순 정렬 -> 상위 5개 중 랜덤 추천
+    top_candidates = df.sort_values(by='score', ascending=False).head(10)
+    
+    # 만약 점수가 너무 낮은(60점 미만) 것밖에 없다면? -> 그냥 장르 맞는 것 중 추천
+    if top_candidates.iloc[0]['score'] < 40:
+        return df[df['종류'] == choices['step3']].sample(1).iloc[0]['메뉴명'], "유사 메뉴 추천"
+    
+    return top_candidates.sample(1).iloc[0]['메뉴명'], "맞춤 추천"
 
-# 단계별 선택 (안전한 UI 사용)
-# Step 1
-st.subheader("1. 맵기 선택")
-c1, c2 = st.columns(2)
-if c1.button("🌶️ 매운 맛", type="primary" if st.session_state.choices['step1']=="매운 맛" else "secondary"):
-    set_choice('step1', "매운 맛")
-    st.rerun()
-if c2.button("😌 순한 맛", type="primary" if st.session_state.choices['step1']=="순한 맛" else "secondary"):
-    set_choice('step1', "순한 맛")
-    st.rerun()
-
-# Step 2
-if st.session_state.choices['step1']:
-    st.write("")
-    st.subheader("2. 온도 선택")
-    c1, c2 = st.columns(2)
-    if c1.button("🔥 뜨거운 것", type="primary" if st.session_state.choices['step2']=="뜨거운 것" else "secondary"):
-        set_choice('step2', "뜨거운 것")
-        st.rerun()
-    if c2.button("❄️ 차가운 것", type="primary" if st.session_state.choices['step2']=="차가운 것" else "secondary"):
-        set_choice('step2', "차가운 것")
-        st.rerun()
-
-# Step 3
-if st.session_state.choices['step2']:
-    st.write("")
-    st.subheader("3. 종류 선택")
-    col_list = st.columns(3)
-    options = ["한식", "중식", "일식", "양식", "아시안"]
-    for i, opt in enumerate(options):
-        # 3열로 배치
-        with col_list[i % 3]:
-            if st.button(opt, key=f"s3_{opt}", type="primary" if st.session_state.choices['step3']==opt else "secondary"):
-                set_choice('step3', opt)
+# UI 렌더링 함수
+def draw_step(step_key, title, options):
+    current = st.session_state.choices[step_key]
+    icon = "✅" if current else "🔹"
+    st.subheader(f"{icon} {title}")
+    
+    # 버튼 레이아웃 최적화 (모바일 깨짐 방지)
+    cols = st.columns(2 if len(options) <= 2 else 3)
+    for i, option in enumerate(options):
+        with cols[i % len(cols)]:
+            btn_type = "primary" if current == option else "secondary"
+            if st.button(option, key=f"{step_key}_{option}", type=btn_type):
+                set_choice(step_key, option)
                 st.rerun()
 
-# Step 4
-if st.session_state.choices['step3']:
-    st.write("")
-    st.subheader("4. 재료 선택")
-    col_list = st.columns(3)
-    options = ["밥", "면", "고기", "빵", "기타"]
-    for i, opt in enumerate(options):
-        with col_list[i % 3]:
-            if st.button(opt, key=f"s4_{opt}", type="primary" if st.session_state.choices['step4']==opt else "secondary"):
-                set_choice('step4', opt)
-                st.rerun()
+# 메인 화면
+st.title("🍽️ 점메추 Quantum")
+st.caption(f"빅데이터 {len(df_logic)}개 탑재 | 알고리즘 v2.0 가동 중")
 
-# 최종 결과
-if st.session_state.choices['step4']:
+# 선택 변수
+c1 = st.session_state.choices['step1']
+c2 = st.session_state.choices['step2']
+c3 = st.session_state.choices['step3']
+c4 = st.session_state.choices['step4']
+
+# UI
+draw_step('step1', "맵기", ["매운 맛", "순한 맛"])
+if c1:
+    st.write("")
+    draw_step('step2', "온도", ["뜨거운 것", "차가운 것"])
+if c1 and c2:
+    st.write("")
+    draw_step('step3', "장르", ["한식", "중식", "일식", "양식", "아시안"])
+if c1 and c2 and c3:
+    st.write("")
+    draw_step('step4', "재료", ["밥", "면", "고기", "빵", "기타"])
+
+# 결과 처리
+if c1 and c2 and c3 and c4:
     st.markdown("---")
     
-    # 선택값 가져오기
-    c1 = st.session_state.choices['step1']
-    c2 = st.session_state.choices['step2']
-    c3 = st.session_state.choices['step3']
-    c4 = st.session_state.choices['step4']
+    # 알고리즘 실행
+    final_menu, match_type = recommend_food(df_logic, st.session_state.choices)
     
-    # 필터링
-    result_df = df_logic[
-        (df_logic['맵기']==c1) & (df_logic['온도']==c2) & 
-        (df_logic['종류']==c3) & (df_logic['주재료']==c4)
-    ]
+    # 링크 생성
+    naver_url = f"https://map.naver.com/v5/search/내주변 {final_menu}"
+    kakao_url = f"https://map.kakao.com/link/search/내주변 {final_menu}"
     
-    if not result_df.empty:
-        final_menu = result_df.sample(1).iloc[0]['메뉴명']
+    # 결과 카드 디자인
+    st.markdown(f"""
+    <div style="
+        background-color: #f7f9fc; 
+        padding: 30px; 
+        border-radius: 20px; 
+        border: 2px solid #FF4B4B;
+        text-align: center;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+        <p style="color:#666; font-size:14px; margin-bottom:5px;">AI 분석 결과: {match_type}</p>
+        <h1 style="margin:10px 0; color:#333; font-size:3em;">{final_menu}</h1>
+        <p style="opacity: 0.7;">{c1} · {c2} · {c3} · {c4}</p>
         
-        # 디자인 박스 (안전한 HTML)
-        st.markdown(f"""
-        <div style="
-            background-color: #f0f2f6; 
-            padding: 20px; 
-            border-radius: 15px; 
-            border: 2px solid #ff4b4b;
-            text-align: center;">
-            <h3 style="margin:0; color:gray;">오늘의 메뉴</h3>
-            <h1 style="margin:10px 0; color:#ff4b4b; font-size:3em;">{final_menu}</h1>
-            <p>({c1}, {c2}, {c3}, {c4})</p>
+        <div style="margin-top: 25px;">
+            <a href="{naver_url}" target="_blank" style="
+                display: inline-block;
+                text-decoration: none;
+                background-color: #03C75A;
+                color: white;
+                padding: 12px 25px;
+                border-radius: 30px;
+                font-weight: bold;
+                margin: 5px;">N 네이버지도</a>
+            <a href="{kakao_url}" target="_blank" style="
+                display: inline-block;
+                text-decoration: none;
+                background-color: #FEE500;
+                color: #191919;
+                padding: 12px 25px;
+                border-radius: 30px;
+                font-weight: bold;
+                margin: 5px;">K 카카오맵</a>
         </div>
-        """, unsafe_allow_html=True)
-        
-        st.write("")
-        st.success("👇 아래 버튼을 누르면 내 주변 식당을 찾습니다!")
-        
-        # 지도 버튼 (스트림릿 네이티브 링크 버튼 사용 - 오류 없음)
-        col1, col2 = st.columns(2)
-        with col1:
-            st.link_button(f"N 네이버지도 검색", f"https://map.naver.com/v5/search/내주변 {final_menu}", use_container_width=True)
-        with col2:
-            st.link_button(f"K 카카오맵 검색", f"https://map.kakao.com/link/search/내주변 {final_menu}", use_container_width=True)
-            
-    else:
-        st.warning("조건에 맞는 메뉴가 없어요 😭")
-        backup = df_logic[df_logic['종류']==c3].sample(1).iloc[0]['메뉴명']
-        st.info(f"대신 **{backup}** 어때요?")
-        st.link_button(f"N {backup} 맛집 찾기", f"https://map.naver.com/v5/search/내주변 {backup}", use_container_width=True)
+    </div>
+    """, unsafe_allow_html=True)
+    st.balloons()
 
     st.write("")
-    if st.button("🔄 처음부터 다시 하기", type="secondary", use_container_width=True):
+    if st.button("🔄 다시 하기", type="secondary"):
         for k in st.session_state.choices: st.session_state.choices[k] = None
         st.rerun()
