@@ -6,7 +6,7 @@ import time
 # ==========================================
 # 1. 페이지 설정 & 테마 (다크모드 호환)
 # ==========================================
-st.set_page_config(page_title="점메추 Quantum", layout="centered")
+st.set_page_config(page_title="메추", layout="centered")
 
 st.markdown("""
 <style>
