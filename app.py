@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import random
-import time
+from datetime import datetime
 
 # ==========================================
 # 1. 페이지 설정 & 테마 (다크모드 호환)
 # ==========================================
-st.set_page_config(page_title="메추", layout="centered")
+st.set_page_config(page_title="오늘의 메뉴", layout="centered")
 
 st.markdown("""
 <style>
@@ -79,6 +79,18 @@ st.markdown("""
         margin-top: 20px;
         animation: popUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+    
+    /* 서브 추천 박스 */
+    .sub-recommend {
+        background-color: rgba(128, 128, 128, 0.05);
+        border-radius: 15px;
+        padding: 15px;
+        margin-top: 20px;
+        font-size: 16px;
+        color: var(--text-color);
+        border: 1px solid rgba(128, 128, 128, 0.1);
+    }
+
     @keyframes popUp {
         from { opacity: 0; transform: scale(0.9); }
         to { opacity: 1; transform: scale(1); }
@@ -87,7 +99,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 데이터 로드 (350개 이상 복구 완료)
+# 2. 데이터 로드 (350개 이상 완전체)
 # ==========================================
 @st.cache_data
 def load_data():
@@ -185,7 +197,7 @@ def load_data():
         if any(k in m for k in cold_keys): temp = "차가운 것"
             
         # 종류 분류
-        if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","유린기","동파육","우육","탄탄","양꼬치","훠궈","멘보샤","깐풍","라조기","난자완스","팔보채","중화","어향"]): kind="중식"
+        if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","유린기","양꼬치","훠궈","멘보샤","깐풍","라조기","난자완스","팔보채","중화","어향","동파육","우육","탄탄"]): kind="중식"
         elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","가츠","규동","사케동","오꼬노미","스시","나베","텐동","부타동","야끼","스키야키","샤브샤브","일식","후토마키","장어","오야코"]): kind="일식"
         elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","스프","라자냐","뇨끼","토스트","베이글","감바스","파니니","핫도그","바베큐","폭립","그라탕","잠봉","브런치"]): kind="양식"
         elif any(k in m for k in ["쌀국수","팟타이","나시고랭","미시고랭","분짜","타코","부리또","커리","반미","퀘사디아","케밥","화이타","똠양","난","탄두리","짜조","스프링롤","치미창가"]): kind="아시안"
@@ -211,34 +223,45 @@ if 'choices' not in st.session_state:
 def set_choice(step, value):
     st.session_state.choices[step] = value
 
-# 🧮 벡터 점수 알고리즘 (Vector Scoring)
-def recommend_food(df, choices):
+# 🕒 시간 기반 제목
+def get_time_based_title():
+    hour = datetime.now().hour
+    if 5 <= hour < 11: return "☀️ 아메추 (아침 메뉴 추천)"
+    elif 11 <= hour < 17: return "🕛 점메추 (점심 메뉴 추천)"
+    else: return "🌙 저메추 (저녁 메뉴 추천)"
+
+# 🧮 추천 알고리즘 (가중치 점수 + 유사 메뉴)
+def recommend_food_with_similars(df, choices):
     df['score'] = 0
-    # 가중치: 종류(40) > 재료(30) > 맵기/온도(15)
     df.loc[df['종류'] == choices['step3'], 'score'] += 40
     df.loc[df['주재료'] == choices['step4'], 'score'] += 30
     df.loc[df['맵기'] == choices['step1'], 'score'] += 15
     df.loc[df['온도'] == choices['step2'], 'score'] += 15
     
-    # 점수 높은 순 정렬
-    top_candidates = df.sort_values(by='score', ascending=False).head(15)
+    sorted_df = df.sort_values(by='score', ascending=False)
     
-    # 1위 그룹(동점자 포함)에서 랜덤 선택
-    # 이렇게 하면 매번 같은 메뉴만 나오는 걸 방지함
-    best_score = top_candidates.iloc[0]['score']
-    final_pool = top_candidates[top_candidates['score'] >= best_score - 10] # 1등과 10점 차이 이내인 애들
+    # 메인 메뉴 (점수 최상위권 중 랜덤)
+    top_score = sorted_df.iloc[0]['score']
+    top_candidates = sorted_df[sorted_df['score'] >= top_score]
+    final_menu = top_candidates.sample(1).iloc[0]['메뉴명']
     
-    if best_score < 40:
-        return df[df['종류'] == choices['step3']].sample(1).iloc[0]['메뉴명'], "유사 메뉴"
-    return final_pool.sample(1).iloc[0]['메뉴명'], "맞춤 추천"
+    # 유사 메뉴 (메인 제외하고 상위 10개 중 2개 랜덤)
+    others_pool = sorted_df[sorted_df['메뉴명'] != final_menu].head(10)
+    if len(others_pool) >= 2:
+        similar_menus = others_pool.sample(2)['메뉴명'].tolist()
+    else:
+        similar_menus = others_pool['메뉴명'].tolist()
+        
+    return final_menu, similar_menus
 
-# UI 렌더링 함수
+def draw_progress_bar(percent):
+    st.markdown(f'<div class="progress-container"><div class="progress-bar" style="width: {percent}%;"></div></div>', unsafe_allow_html=True)
+
 def draw_step(step_key, title, options):
     current = st.session_state.choices[step_key]
     icon = "✅" if current else "🔹"
     st.subheader(f"{icon} {title}")
     
-    # 모바일 최적화 레이아웃 (2열 or 3열)
     cols = st.columns(2 if len(options) <= 2 else 3)
     for i, option in enumerate(options):
         with cols[i % len(cols)]:
@@ -247,12 +270,9 @@ def draw_step(step_key, title, options):
                 set_choice(step_key, option)
                 st.rerun()
 
-def draw_progress_bar(percent):
-    st.markdown(f'<div class="progress-container"><div class="progress-bar" style="width: {percent}%;"></div></div>', unsafe_allow_html=True)
-
 # 메인 화면
-st.title("🍽️ 점메추 Quantum")
-st.caption(f"빅데이터 {len(df_logic)}개 탑재 | GPS 검색 기능 추가")
+st.title(get_time_based_title())
+st.caption(f"데이터베이스: 총 {len(df_logic)}개의 메뉴가 준비되었습니다.")
 
 # 진행률
 current_step = 0
@@ -285,31 +305,37 @@ if c1 and c2 and c3 and c4:
     st.markdown("---")
     
     # 알고리즘 실행
-    final_menu, match_type = recommend_food(df_logic, st.session_state.choices)
+    final_menu, similar_menus = recommend_food_with_similars(df_logic, st.session_state.choices)
     
-    # 링크 생성 (모바일/PC 공용 링크)
+    # 링크 생성
     naver_url = f"https://map.naver.com/v5/search/내주변 {final_menu}"
     kakao_url = f"https://map.kakao.com/link/search/내주변 {final_menu}"
+    
+    similar_text = ", ".join(similar_menus)
     
     # 결과 디자인
     st.markdown(f"""
     <div class="result-card">
-        <p style="color:var(--text-color); opacity:0.7; font-size:14px; margin-bottom:5px;">AI 분석 결과: {match_type}</p>
+        <p style="color:var(--text-color); opacity:0.7; font-size:14px; margin-bottom:5px;">분석 결과</p>
         <h1 style="margin:10px 0; color:#FF4B4B; font-size:3em;">{final_menu}</h1>
         <p style="opacity: 0.7;">{c1} · {c2} · {c3} · {c4}</p>
+        
+        <div class="sub-recommend">
+            🤔 <b>다른 선택지</b><br>
+            {similar_text} 도 괜찮을 것 같아요!
+        </div>
         <br>
     </div>
     """, unsafe_allow_html=True)
     
     st.write("")
-    st.info("👇 아래 버튼을 누르면 내 주변 식당을 찾습니다!")
+    st.info(f"👇 '{final_menu}' 파는 곳 찾기")
     
-    # [수정 완료] 안전한 st.link_button 사용
     col1, col2 = st.columns(2)
     with col1:
-        st.link_button(f"N 네이버지도 검색", naver_url, use_container_width=True)
+        st.link_button(f"N 네이버지도", naver_url, use_container_width=True)
     with col2:
-        st.link_button(f"K 카카오맵 검색", kakao_url, use_container_width=True)
+        st.link_button(f"K 카카오맵", kakao_url, use_container_width=True)
         
     st.balloons()
 
