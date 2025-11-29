@@ -4,107 +4,44 @@ import random
 from datetime import datetime
 
 # ==========================================
-# 1. 페이지 설정 & 테마 (다크모드 호환)
+# 1. 페이지 설정
 # ==========================================
 st.set_page_config(page_title="오늘의 메뉴", layout="centered")
 
+# CSS: 깔끔한 버튼 스타일 (오류 없는 버전)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+    html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
     
-    html, body, [class*="css"] {
-        font-family: 'Noto Sans KR', sans-serif;
-    }
-
-    /* 제목 스타일 */
-    h3 {
-        color: var(--text-color) !important;
-        font-weight: 700;
-        opacity: 0.9;
-        margin-bottom: 10px;
-    }
-
-    /* 버튼 스타일 */
+    /* 버튼 */
     div.stButton > button {
-        width: 100%;
-        height: 65px;
-        border: 1px solid rgba(128, 128, 128, 0.2);
-        border-radius: 16px;
-        background-color: var(--secondary-background-color);
-        color: var(--text-color);
-        font-size: 19px;
-        font-weight: 700;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        transition: all 0.2s ease;
+        width: 100%; height: 60px; font-size: 18px; font-weight: bold;
+        border-radius: 12px; border: 1px solid #ddd;
+        background-color: #fff;
     }
-
     div.stButton > button:hover {
-        transform: translateY(-2px);
-        border-color: #FF4B4B;
-        color: #FF4B4B;
+        border-color: #FF4B4B; color: #FF4B4B;
     }
-
-    /* 선택된 버튼 강조 */
+    /* 선택된 버튼 */
     div.stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-        color: white !important;
-        border: none;
-        box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-    }
-
-    /* 프로그레스 바 */
-    .progress-container {
-        width: 100%;
-        background-color: rgba(128, 128, 128, 0.2);
-        border-radius: 10px;
-        margin-bottom: 30px;
-        height: 8px;
-        overflow: hidden;
-    }
-    .progress-bar {
-        height: 100%;
-        background: linear-gradient(90deg, #FF6B6B, #FF8E53);
-        transition: width 0.5s ease-in-out;
-        border-radius: 10px;
-    }
-
-    /* 결과 카드 */
-    .result-card {
-        background: var(--secondary-background-color);
-        border: 2px solid #FF6B6B;
-        border-radius: 24px;
-        padding: 40px;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin-top: 20px;
-        animation: popUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        background-color: #FF4B4B; color: white !important; border: none;
     }
     
-    /* 서브 추천 박스 */
-    .sub-recommend {
-        background-color: rgba(128, 128, 128, 0.05);
-        border-radius: 15px;
-        padding: 15px;
-        margin-top: 20px;
-        font-size: 16px;
-        color: var(--text-color);
-        border: 1px solid rgba(128, 128, 128, 0.1);
-    }
-
-    @keyframes popUp {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
+    /* 프로그레스 바 색상 */
+    .stProgress > div > div > div > div {
+        background-color: #FF4B4B;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 데이터 로드 (350개 이상 완전체)
+# 2. 데이터 로드 (350개 메뉴)
 # ==========================================
 @st.cache_data
 def load_data():
     raw_list = [
-        # [한식 - 찌개/국/탕]
+        # [한식]
         "김치찌개", "참치김치찌개", "돼지김치찌개", "스팸김치찌개", "꽁치김치찌개",
         "된장찌개", "차돌된장찌개", "해물된장찌개", "우렁된장찌개", "냉이된장찌개", "강된장",
         "순두부찌개", "해물순두부", "햄치즈순두부", "들깨순두부", "만두순두부", "곱창순두부",
@@ -114,16 +51,12 @@ def load_data():
         "육개장", "추어탕", "통추어탕", "장어탕", "감자탕", "뼈해장국", "선지해장국", "황태해장국", "북엇국",
         "콩나물국밥", "순대국", "얼큰순대국", "돼지국밥", "소머리국밥", "내장탕", "미역국", "소고기무국",
         "떡만두국", "사골만두국", "매생이굴국", "재첩국", "올갱이국", "민물새우탕",
-        
-        # [한식 - 밥/죽]
         "비빔밥", "돌솥비빔밥", "산채비빔밥", "육회비빔밥", "꼬막비빔밥", "낙지비빔밥", "멍게비빔밥",
         "김치볶음밥", "참치김치볶음밥", "새우볶음밥", "오므라이스", "소고기볶음밥", "깍두기볶음밥",
         "제육덮밥", "오징어덮밥", "낙지덮밥", "쭈꾸미덮밥", "불고기덮밥", "잡채밥", "카레라이스", "짜장밥", 
         "치킨마요덮밥", "참치마요덮밥", "스팸마요덮밥", "장조림버터비빔밥", "연어덮밥",
         "쌈밥", "제육쌈밥", "우렁쌈밥", "보리밥", "강된장보리밥", "생선구이백반", "게장백반", "불고기백반", "기사식당불백",
         "묵밥", "도토리묵밥", "전복죽", "야채죽", "소고기죽", "호박죽", "팥죽", "낙지김치죽", "삼계죽",
-        
-        # [한식 - 고기/요리]
         "삼겹살", "냉동삼겹살", "목살", "항정살", "가브리살", "돼지갈비", "매운돼지갈비찜", "간장갈비찜",
         "소갈비", "소갈비찜", "LA갈비", "차돌박이", "등심", "안심", "육회", "육사시미", 
         "곱창", "대창", "막창", "양대창", "곱창전골", "대창덮밥",
@@ -132,8 +65,6 @@ def load_data():
         "고등어구이", "삼치구이", "임연수구이", "갈치구이", "굴비",
         "보쌈", "마늘보쌈", "굴보쌈", "족발", "불족발", "냉채족발", "미니족",
         "아구찜", "해물찜", "대구뽈찜", "등뼈찜", "파전", "해물파전", "김치전", "감자전", "육전", "모둠전", "빈대떡", "도토리묵",
-        
-        # [한식 - 분식]
         "떡볶이", "라볶이", "즉석떡볶이", "로제떡볶이", "짜장떡볶이", "궁중떡볶이", "기름떡볶이", "마라떡볶이", "가래떡떡볶이",
         "튀김", "오징어튀김", "새우튀김", "김말이", "순대", "순대볶음", "백순대",
         "김밥", "야채김밥", "참치김밥", "치즈김밥", "돈가스김밥", "새우김밥", "충무김밥", "키토김밥", "주먹밥", "유부초밥",
@@ -188,26 +119,17 @@ def load_data():
     def auto_tag(m):
         spicy, temp, kind, main = "순한 맛", "뜨거운 것", "한식", "기타"
         
-        # 맵기 키워드
-        spicy_keys = ["김치","매운","짬뽕","마라","떡볶이","육개장","비빔","양념","낙지","쭈꾸미","닭갈비","얼큰","핫","사천","불족발","카라이","탄탄","똠양","감자탕","해물탕","아구찜","해물찜","닭발","고추","레드","아라비아따","화이타","김치전"]
-        if any(k in m for k in spicy_keys): spicy = "매운 맛"
-            
-        # 온도 키워드
-        cold_keys = ["냉","소바","초밥","회","샐러드","샌드위치","김밥","빙수","묵밥","포케","월남쌈","육회","쫄면","막국수","비빔면","족발","보쌈","양장피","냉채"]
-        if any(k in m for k in cold_keys): temp = "차가운 것"
-            
-        # 종류 분류
+        if any(k in m for k in ["김치","매운","짬뽕","마라","떡볶이","육개장","비빔","낙지","쭈꾸미","닭갈비","얼큰","핫","사천","불족발","카라이","탄탄","똠양","감자탕","해물탕","아구찜","해물찜","닭발","고추","레드","아라비아따","화이타"]): spicy = "매운 맛"
+        if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","빙수","묵밥","포케","월남쌈","쫄면","막국수","비빔면","족발","보쌈","양장피","냉채"]): temp = "차가운 것"
         if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","유린기","양꼬치","훠궈","멘보샤","깐풍","라조기","난자완스","팔보채","중화","어향","동파육","우육","탄탄"]): kind="중식"
         elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","가츠","규동","사케동","오꼬노미","스시","나베","텐동","부타동","야끼","스키야키","샤브샤브","일식","후토마키","장어","오야코"]): kind="일식"
         elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","스프","라자냐","뇨끼","토스트","베이글","감바스","파니니","핫도그","바베큐","폭립","그라탕","잠봉","브런치"]): kind="양식"
         elif any(k in m for k in ["쌀국수","팟타이","나시고랭","미시고랭","분짜","타코","부리또","커리","반미","퀘사디아","케밥","화이타","똠양","난","탄두리","짜조","스프링롤","치미창가"]): kind="아시안"
         
-        # 주재료 분류
-        if any(k in m for k in ["밥","죽","리조또","동","초밥","필라프","포케","볶음밥","덮밥","국밥","백반","비빔밥","김밥"]): main="밥"
-        elif any(k in m for k in ["면","국수","우동","소바","파스타","라멘","짜장","짬뽕","팟타이","잡채","소면","스파게티"]): main="면"
+        if any(k in m for k in ["밥","죽","리조또","동","초밥","필라프","포케","볶음밥","덮밥","국밥","백반"]): main="밥"
+        elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","팟타이","잡채","소면","스파게티"]): main="면"
         elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","족발","탕수육","돈가스","치킨","육회","찜닭","곱창","대창","막창","차돌","등심","안심","함박","동파육","불고기","두루치기","샤브샤브","케밥"]): main="고기"
         elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그","반미","타코","부리또","퀘사디아","난"]): main="빵"
-        
         return {"메뉴명":m, "맵기":spicy, "온도":temp, "종류":kind, "주재료":main}
     
     return pd.DataFrame([auto_tag(m) for m in raw_list])
@@ -215,7 +137,44 @@ def load_data():
 df_logic = load_data()
 
 # ==========================================
-# 3. 로직 및 UI
+# 3. 정밀 알고리즘 (Scoring System)
+# ==========================================
+def recommend_food(df, choices):
+    df['score'] = 0
+    # 가중치 점수 부여
+    df.loc[df['종류'] == choices['step3'], 'score'] += 40  # 장르 일치 (가장 중요)
+    df.loc[df['주재료'] == choices['step4'], 'score'] += 30 # 재료 일치
+    df.loc[df['맵기'] == choices['step1'], 'score'] += 15  # 맵기
+    df.loc[df['온도'] == choices['step2'], 'score'] += 15  # 온도
+    
+    # 점수 높은 순으로 정렬
+    top_candidates = df.sort_values(by='score', ascending=False).head(20)
+    
+    # 상위권 중 랜덤 선택 (매번 같은 거 안 나오게)
+    best_score = top_candidates.iloc[0]['score']
+    # 1등과 점수 차이가 15점 이내인 후보군 형성
+    pool = top_candidates[top_candidates['score'] >= best_score - 15]
+    
+    final_menu = pool.sample(1).iloc[0]['메뉴명']
+    
+    # 유사 메뉴 추천 (본인 제외)
+    others_pool = pool[pool['메뉴명'] != final_menu]
+    if len(others_pool) >= 2:
+        similar = others_pool.sample(2)['메뉴명'].tolist()
+    else:
+        similar = others_pool['메뉴명'].tolist()
+        
+    return final_menu, similar
+
+# 🕒 시간별 제목
+def get_time_title():
+    h = datetime.now().hour
+    if 5 <= h < 11: return "☀️ 아메추"
+    elif 11 <= h < 17: return "🕛 점메추"
+    else: return "🌙 저메추"
+
+# ==========================================
+# 4. 화면 구성 (UI)
 # ==========================================
 if 'choices' not in st.session_state:
     st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
@@ -223,64 +182,17 @@ if 'choices' not in st.session_state:
 def set_choice(step, value):
     st.session_state.choices[step] = value
 
-# 🕒 시간 기반 제목
-def get_time_based_title():
-    hour = datetime.now().hour
-    if 5 <= hour < 11: return "☀️ 아메추 (아침 메뉴 추천)"
-    elif 11 <= hour < 17: return "🕛 점메추 (점심 메뉴 추천)"
-    else: return "🌙 저메추 (저녁 메뉴 추천)"
-
-# 🧮 추천 알고리즘 (가중치 점수 + 유사 메뉴)
-def recommend_food_with_similars(df, choices):
-    df['score'] = 0
-    df.loc[df['종류'] == choices['step3'], 'score'] += 40
-    df.loc[df['주재료'] == choices['step4'], 'score'] += 30
-    df.loc[df['맵기'] == choices['step1'], 'score'] += 15
-    df.loc[df['온도'] == choices['step2'], 'score'] += 15
-    
-    sorted_df = df.sort_values(by='score', ascending=False)
-    
-    # 메인 메뉴 (점수 최상위권 중 랜덤)
-    top_score = sorted_df.iloc[0]['score']
-    top_candidates = sorted_df[sorted_df['score'] >= top_score]
-    final_menu = top_candidates.sample(1).iloc[0]['메뉴명']
-    
-    # 유사 메뉴 (메인 제외하고 상위 10개 중 2개 랜덤)
-    others_pool = sorted_df[sorted_df['메뉴명'] != final_menu].head(10)
-    if len(others_pool) >= 2:
-        similar_menus = others_pool.sample(2)['메뉴명'].tolist()
-    else:
-        similar_menus = others_pool['메뉴명'].tolist()
-        
-    return final_menu, similar_menus
-
-def draw_progress_bar(percent):
-    st.markdown(f'<div class="progress-container"><div class="progress-bar" style="width: {percent}%;"></div></div>', unsafe_allow_html=True)
-
-def draw_step(step_key, title, options):
-    current = st.session_state.choices[step_key]
-    icon = "✅" if current else "🔹"
-    st.subheader(f"{icon} {title}")
-    
-    cols = st.columns(2 if len(options) <= 2 else 3)
-    for i, option in enumerate(options):
-        with cols[i % len(cols)]:
-            btn_type = "primary" if current == option else "secondary"
-            if st.button(option, key=f"{step_key}_{option}", type=btn_type):
-                set_choice(step_key, option)
-                st.rerun()
-
-# 메인 화면
-st.title(get_time_based_title())
-st.caption(f"데이터베이스: 총 {len(df_logic)}개의 메뉴가 준비되었습니다.")
+# 메인 타이틀
+st.title(get_time_title())
+st.caption(f"데이터베이스: {len(df_logic)}개 메뉴 탑재 완료")
 
 # 진행률
 current_step = 0
-if st.session_state.choices['step1']: current_step = 1
-if st.session_state.choices['step2']: current_step = 2
-if st.session_state.choices['step3']: current_step = 3
-if st.session_state.choices['step4']: current_step = 4
-draw_progress_bar(current_step * 25)
+if st.session_state.choices['step1']: current_step += 1
+if st.session_state.choices['step2']: current_step += 1
+if st.session_state.choices['step3']: current_step += 1
+if st.session_state.choices['step4']: current_step += 1
+st.progress(current_step / 4)
 
 # 선택 변수
 c1 = st.session_state.choices['step1']
@@ -288,58 +200,77 @@ c2 = st.session_state.choices['step2']
 c3 = st.session_state.choices['step3']
 c4 = st.session_state.choices['step4']
 
-# UI
-draw_step('step1', "맵기", ["매운 맛", "순한 맛"])
+# UI 그리기 함수
+def draw_buttons(step_key, title, options):
+    st.subheader(title)
+    cols = st.columns(len(options))
+    current = st.session_state.choices[step_key]
+    for i, opt in enumerate(options):
+        with cols[i]:
+            btn_type = "primary" if current == opt else "secondary"
+            if st.button(opt, key=step_key+opt, type=btn_type):
+                set_choice(step_key, opt)
+                st.rerun()
+
+# [1단계]
+draw_buttons('step1', "1. 맵기", ["매운 맛", "순한 맛"])
+
+# [2단계]
 if c1:
     st.write("")
-    draw_step('step2', "온도", ["뜨거운 것", "차가운 것"])
+    draw_buttons('step2', "2. 온도", ["뜨거운 것", "차가운 것"])
+
+# [3단계] - 버튼 많아서 줄바꿈 처리
 if c1 and c2:
     st.write("")
-    draw_step('step3', "장르", ["한식", "중식", "일식", "양식", "아시안"])
+    st.subheader("3. 종류")
+    col_a, col_b, col_c = st.columns(3)
+    if col_a.button("한식", type="primary" if c3=="한식" else "secondary"): set_choice('step3', "한식"); st.rerun()
+    if col_b.button("중식", type="primary" if c3=="중식" else "secondary"): set_choice('step3', "중식"); st.rerun()
+    if col_c.button("일식", type="primary" if c3=="일식" else "secondary"): set_choice('step3', "일식"); st.rerun()
+    
+    col_d, col_e = st.columns(2)
+    if col_d.button("양식", type="primary" if c3=="양식" else "secondary"): set_choice('step3', "양식"); st.rerun()
+    if col_e.button("아시안", type="primary" if c3=="아시안" else "secondary"): set_choice('step3', "아시안"); st.rerun()
+
+# [4단계]
 if c1 and c2 and c3:
     st.write("")
-    draw_step('step4', "재료", ["밥", "면", "고기", "빵", "기타"])
+    draw_buttons('step4', "4. 재료", ["밥", "면", "고기", "빵", "기타"])
 
-# 결과 처리
+# [최종 결과]
 if c1 and c2 and c3 and c4:
     st.markdown("---")
     
     # 알고리즘 실행
-    final_menu, similar_menus = recommend_food_with_similars(df_logic, st.session_state.choices)
+    final_menu, similar_menus = recommend_food(df_logic, st.session_state.choices)
+    similar_text = ", ".join(similar_menus)
     
     # 링크 생성
     naver_url = f"https://map.naver.com/v5/search/내주변 {final_menu}"
     kakao_url = f"https://map.kakao.com/link/search/내주변 {final_menu}"
     
-    similar_text = ", ".join(similar_menus)
-    
-    # 결과 디자인
-    st.markdown(f"""
-    <div class="result-card">
-        <p style="color:var(--text-color); opacity:0.7; font-size:14px; margin-bottom:5px;">분석 결과</p>
-        <h1 style="margin:10px 0; color:#FF4B4B; font-size:3em;">{final_menu}</h1>
-        <p style="opacity: 0.7;">{c1} · {c2} · {c3} · {c4}</p>
+    # [수정 완료] 안전한 박스 UI
+    with st.container(border=True):
+        st.markdown(f"<p style='text-align:center; color:gray; margin-bottom:5px;'>분석 결과</p>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align:center; color:#FF4B4B; margin:0;'>{final_menu}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align:center; color:gray; opacity:0.7; margin-top:10px;'>{c1} · {c2} · {c3} · {c4}</p>", unsafe_allow_html=True)
         
-        <div class="sub-recommend">
-            🤔 <b>다른 선택지</b><br>
-            {similar_text} 도 괜찮을 것 같아요!
-        </div>
-        <br>
-    </div>
-    """, unsafe_allow_html=True)
+        if similar_text:
+            st.info(f"🤔 다른 추천: {similar_text}")
     
     st.write("")
-    st.info(f"👇 '{final_menu}' 파는 곳 찾기")
+    st.caption("👇 아래 버튼을 누르면 주변 식당을 찾습니다.")
     
     col1, col2 = st.columns(2)
     with col1:
-        st.link_button(f"N 네이버지도", naver_url, use_container_width=True)
+        st.link_button("N 네이버지도", naver_url, use_container_width=True)
     with col2:
-        st.link_button(f"K 카카오맵", kakao_url, use_container_width=True)
+        st.link_button("K 카카오맵", kakao_url, use_container_width=True)
         
     st.balloons()
 
     st.write("")
-    if st.button("🔄 처음부터 다시 하기", type="secondary"):
+    if st.button("🔄 처음부터 다시 하기", type="secondary", use_container_width=True):
         for k in st.session_state.choices: st.session_state.choices[k] = None
         st.rerun()
