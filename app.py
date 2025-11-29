@@ -5,95 +5,98 @@ import time
 from datetime import datetime, timedelta
 
 # ==========================================
-# 1. 페이지 설정
+# 1. 페이지 설정 & 디자인 (CSS)
 # ==========================================
 st.set_page_config(page_title="오늘의 메뉴", layout="centered")
 
-# ==========================================
-# 2. CSS 디자인 (3D 레버 + 탭 + 카드)
-# ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
     html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
 
-    /* 1. 상단 탭 버튼 */
+    /* 1. 기본 버튼 스타일 */
     div.stButton > button {
-        width: 100%; height: 60px; font-size: 20px; font-weight: 700;
-        border-radius: 12px 12px 0 0;
-        border: 1px solid #ddd; border-bottom: none;
-        transition: all 0.2s;
+        width: 100%; height: 60px; font-size: 18px; font-weight: bold;
+        border-radius: 12px; border: 1px solid #ddd; background-color: #fff;
+        color: #333; transition: all 0.2s;
     }
-    /* 선택된 탭 (빨강) */
-    div.stButton > button[kind="primary"] {
-        background-color: #FF4B4B; color: white !important; 
-        border: none; transform: translateY(-3px); box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-    }
-    /* 선택 안 된 탭 (회색) */
-    div.stButton > button[kind="secondary"] {
-        background-color: #f0f2f6; color: #888;
+    div.stButton > button:hover {
+        border-color: #FF4B4B; color: #FF4B4B; transform: translateY(-2px);
     }
 
-    /* 2. 🕹️ 3D 레버 버튼 (핵심 디자인) */
-    .lever-container div.stButton > button {
-        width: 120px !important;
-        height: 120px !important;
+    /* 2. 탭 선택된 버튼 */
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+        color: white !important; border: none;
+        box-shadow: 0 4px 10px rgba(255, 75, 75, 0.3);
+    }
+
+    /* 3. 🕹️ 리얼 레버 버튼 (오른쪽 컬럼 전용) */
+    /* 'PULL'이라는 글자가 들어간 버튼만 동그랗게 만듭니다 */
+    div.stButton > button:has(div:contains("PULL")) { 
+        /* has 선택자가 안 먹힐 경우를 대비해 아래 로직으로 처리 */
+    }
+    
+    /* 꼼수: 슬롯머신 모드일 때만 적용되는 CSS 클래스는 없지만, 
+       우리가 만든 레버 버튼은 'height'를 강제로 늘려서 구 모양으로 만듭니다. */
+    
+    .lever-column div.stButton > button {
+        width: 80px !important;
+        height: 80px !important;
         border-radius: 50% !important;
-        background: radial-gradient(circle at 30% 30%, #ff5252, #a70000) !important;
+        background: radial-gradient(circle at 30% 30%, #ff4b4b, #b30000) !important;
         border: 4px solid #8a0000 !important;
-        box-shadow: 
-            0 10px 0 #500000, 
-            0 15px 20px rgba(0,0,0,0.4), 
-            inset 0 5px 10px rgba(255,255,255,0.3) !important;
         color: white !important;
-        font-size: 24px !important;
         font-weight: 900 !important;
-        margin: 0 auto !important;
-        display: block !important;
+        font-size: 20px !important;
+        box-shadow: 0 10px 0 #5c0e0e, 0 15px 20px rgba(0,0,0,0.3) !important;
+        margin-top: 30px !important;
         transition: all 0.1s !important;
     }
-    /* 레버 눌렀을 때 효과 */
-    .lever-container div.stButton > button:active {
-        transform: translateY(60px) !important;
-        box-shadow: 0 0 0 #500000, 0 0 10px rgba(0,0,0,0.5) !important;
-        border-color: #500000 !important;
+    
+    .lever-column div.stButton > button:active {
+        transform: translateY(60px) !important; /* 당기는 모션 */
+        box-shadow: 0 0 0 #5c0e0e, 0 0 10px rgba(0,0,0,0.3) !important;
     }
-    /* 레버 기둥 */
+    
     .lever-stick {
-        width: 20px; height: 120px;
-        background: linear-gradient(90deg, #888, #eee, #888);
-        margin: -70px auto 20px auto;
-        position: relative; z-index: -1;
+        width: 15px; height: 100px;
+        background: linear-gradient(90deg, #999, #eee, #999);
+        margin: -50px auto 0 auto; /* 버튼 뒤로 */
         border-radius: 0 0 10px 10px;
+        position: relative; z-index: -1;
     }
 
-    /* 3. 슬롯머신 화면 */
-    .slot-machine {
-        background: #222; padding: 20px; border-radius: 20px;
-        border: 8px solid #d4af37;
-        text-align: center; margin-bottom: -40px;
-        position: relative; z-index: 5;
-    }
-    .slot-screen {
-        background-color: #ecf0f1; height: 100px;
-        border-radius: 10px; border: 4px solid #34495e;
+    /* 4. 슬롯 화면 */
+    .slot-frame {
+        background-color: #222;
+        padding: 20px;
+        border: 8px solid #d4af37; /* 금테 */
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: inset 0 0 30px #000;
+        height: 150px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 35px; font-weight: 900; color: #e74c3c;
-        box-shadow: inset 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .slot-text {
+        font-size: 35px; font-weight: 900; color: #fff;
+        text-shadow: 0 0 10px #ffeb3b;
     }
 
-    /* 4. 결과 카드 */
+    /* 결과 카드 */
     .result-card {
         background: var(--secondary-background-color);
-        border: 2px solid #FF4B4B; border-radius: 24px;
-        padding: 30px; text-align: center;
-        margin-top: 30px;
+        border: 2px solid #FF4B4B; border-radius: 20px;
+        padding: 30px; text-align: center; margin-top: 20px;
+        animation: popUp 0.5s ease-out;
     }
+    @keyframes popUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. 데이터 로드 (350개 메뉴)
+# 2. 데이터 로드 (350개 유지)
 # ==========================================
 @st.cache_data
 def load_data():
@@ -172,7 +175,7 @@ def load_data():
         "타코", "부리또", "퀘사디아", "화이타", "엔칠라다", "치미창가", "나초",
         "케밥", "양고기케밥", "치킨케밥", "인도커리", "버터치킨커리", "난", "갈릭난", "탄두리치킨", "라씨"
     ]
-    # 데이터 증식 (350개 이상 확보를 위해 반복)
+    # 데이터 증식 (350개 이상)
     full_list = raw_list * 3 
     
     def auto_tag(m):
@@ -181,12 +184,12 @@ def load_data():
         if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","쫄면","막국수","포케","육회"]): temp="차가운 것"
         if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","양꼬치","깐풍","유린","중화"]): kind="중식"
         elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","규동","스시","텐동","가츠","사케","오꼬노미"]): kind="일식"
-        elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","뇨끼","라자냐","토스트","베이글"]): kind="양식"
+        elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","뇨끼","라자냐","토스트","베이글","감바스","폭립"]): kind="양식"
         elif any(k in m for k in ["쌀국수","팟타이","나시고랭","타코","케밥","커리","분짜","반미","부리또"]): kind="아시안"
         if any(k in m for k in ["밥","죽","리조또","동","초밥","국밥","비빔","덮밥"]): main="밥"
         elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","스파게티"]): main="면"
         elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","돈가스","치킨","족발","곱창","차돌"]): main="고기"
-        elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그"]): main="빵"
+        elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그","반미","타코","부리또"]): main="빵"
         return {"메뉴명":m, "맵기":spicy, "온도":temp, "종류":kind, "주재료":main}
     
     return pd.DataFrame([auto_tag(m) for m in full_list]).drop_duplicates()
@@ -194,42 +197,7 @@ def load_data():
 df_logic = load_data()
 
 # ==========================================
-# 4. 스마트 알고리즘 (점수제)
-# ==========================================
-def recommend_food(df, choices):
-    df['score'] = 0
-    # 가중치 부여 (종류 > 재료 > 맵기/온도)
-    df.loc[df['종류'] == choices['step3'], 'score'] += 40
-    df.loc[df['주재료'] == choices['step4'], 'score'] += 30
-    df.loc[df['맵기'] == choices['step1'], 'score'] += 15
-    df.loc[df['온도'] == choices['step2'], 'score'] += 15
-    
-    # 점수 높은 순 정렬
-    top_candidates = df.sort_values(by='score', ascending=False).head(20)
-    best_score = top_candidates.iloc[0]['score']
-    
-    # 최상위권(1등과 15점 차이 이내)에서 랜덤 선택 -> 매번 다른 결과 유도
-    pool = top_candidates[top_candidates['score'] >= best_score - 15]
-    final_menu = pool.sample(1).iloc[0]['메뉴명']
-    
-    # 유사 메뉴 추천 (본인 제외)
-    others_pool = pool[pool['메뉴명'] != final_menu]
-    if len(others_pool) >= 2:
-        similar_menus = others_pool.sample(2)['메뉴명'].tolist()
-    else:
-        similar_menus = others_pool['메뉴명'].tolist()
-        
-    return final_menu, similar_menus
-
-# 시간 기반 제목 (+9시간)
-def get_time_title():
-    h = (datetime.utcnow() + timedelta(hours=9)).hour
-    if 5 <= h < 11: return "☀️ 아메추"
-    elif 11 <= h < 17: return "🕛 점메추"
-    else: return "🌙 저메추"
-
-# ==========================================
-# 5. UI 로직
+# 3. 로직 함수
 # ==========================================
 if 'mode' not in st.session_state: st.session_state.mode = 'logic'
 if 'choices' not in st.session_state: st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
@@ -238,9 +206,30 @@ if 'slot_result' not in st.session_state: st.session_state.slot_result = "777"
 def set_choice(step, value):
     st.session_state.choices[step] = value
 
+def recommend_food(df, choices):
+    df['score'] = 0
+    df.loc[df['종류'] == choices['step3'], 'score'] += 40
+    df.loc[df['주재료'] == choices['step4'], 'score'] += 30
+    df.loc[df['맵기'] == choices['step1'], 'score'] += 15
+    df.loc[df['온도'] == choices['step2'], 'score'] += 15
+    top = df.sort_values(by='score', ascending=False).head(20)
+    best_score = top.iloc[0]['score']
+    pool = top[top['score'] >= best_score - 15]
+    final = pool.sample(1).iloc[0]['메뉴명']
+    others = pool[pool['메뉴명'] != final].sample(min(2, len(pool)-1))['메뉴명'].tolist()
+    return final, others
+
+def get_time_title():
+    h = (datetime.utcnow() + timedelta(hours=9)).hour
+    if 5 <= h < 11: return "☀️ 아메추"
+    elif 11 <= h < 17: return "🕛 점메추"
+    else: return "🌙 저메추"
+
+# ==========================================
+# 4. 메인 화면
+# ==========================================
 st.title(get_time_title())
 
-# 탭 선택
 col1, col2 = st.columns(2)
 with col1:
     btn_type = "primary" if st.session_state.mode == 'logic' else "secondary"
@@ -293,15 +282,14 @@ if st.session_state.mode == 'logic':
 
     if st.session_state.choices['step4']:
         st.markdown("---")
-        # 🔥 알고리즘 작동!
         final, similar = recommend_food(df_logic, st.session_state.choices)
         
         st.markdown(f"""
         <div class="result-card">
-            <p style="color:gray; margin-bottom:5px;">분석 결과</p>
-            <h1 style="color:#FF4B4B; font-size:3em; margin:0;">{final}</h1>
-            <p style="opacity:0.7; margin-top:10px;">{st.session_state.choices['step1']} · {st.session_state.choices['step2']} · {st.session_state.choices['step3']}</p>
-            <p style="background:#eee; padding:10px; border-radius:10px; margin-top:15px;">🤔 다른 추천: {', '.join(similar)}</p>
+            <p style="color:gray;">분석 결과</p>
+            <h1 style="color:#FF4B4B; font-size:3em; margin:10px;">{final}</h1>
+            <p style="opacity:0.7;">{st.session_state.choices['step1']} · {st.session_state.choices['step2']} · {st.session_state.choices['step3']}</p>
+            <p style="background:#eee; padding:10px; border-radius:10px; margin-top:15px; color:#333;">🤔 다른 추천: {', '.join(similar)}</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -316,56 +304,72 @@ if st.session_state.mode == 'logic':
             st.rerun()
 
 # ----------------------------
-# MODE 2: 랜덤 슬롯머신
+# MODE 2: 랜덤 슬롯머신 (완벽 수정)
 # ----------------------------
 else:
     st.subheader("🎰 운명의 룰렛")
-    st.markdown("<br>", unsafe_allow_html=True)
     
-    slot_display = st.empty()
+    # 📌 레이아웃 분할: [화면 (70%)] [레버 (30%)]
+    c_screen, c_lever = st.columns([7, 3])
     
+    # 1. 왼쪽: 슬롯 화면
+    slot_placeholder = c_screen.empty()
+    
+    # 초기 상태
     if st.session_state.slot_result == "777":
-        slot_display.markdown("""
-        <div class="slot-machine">
-            <div class="slot-screen">🎰 777 🎰</div>
+        slot_placeholder.markdown("""
+        <div class="slot-frame">
+            <div class="slot-text">🎰 777 🎰</div>
         </div>
         """, unsafe_allow_html=True)
+    else:
+        # 결과 상태
+        final = st.session_state.slot_result
+        slot_placeholder.markdown(f"""
+        <div class="slot-frame" style="border-color:#FF4B4B; box-shadow:0 0 20px #FF4B4B;">
+            <div class="slot-text" style="color:#FF4B4B;">🎉 {final} 🎉</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # 2. 오른쪽: 레버 버튼
+    with c_lever:
+        # 이 컨테이너 안에 있는 버튼만 빨간 공 모양으로 바뀜 (CSS lever-column 클래스)
+        st.markdown('<div class="lever-column">', unsafe_allow_html=True)
         
-        # 🕹️ 3D 레버 버튼 (디자인 CSS 적용)
-        st.markdown('<div class="lever-container">', unsafe_allow_html=True)
-        if st.button("PULL", key="lever_btn"):
+        # 🕹️ PULL 버튼
+        if st.button("PULL", key="pull_lever"):
+            # 애니메이션
             candidates = df_logic['메뉴명'].tolist()
-            speed = 0.05
+            sleep_time = 0.05
             for i in range(15):
                 temp = random.choice(candidates)
-                slot_display.markdown(f"""
-                <div class="slot-machine">
-                    <div class="slot-screen" style="color:#aaa;">{temp}</div>
+                slot_placeholder.markdown(f"""
+                <div class="slot-frame">
+                    <div class="slot-text" style="color:#aaa;">{temp}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                time.sleep(speed)
-                if i > 8: speed += 0.05
+                time.sleep(sleep_time)
+                if i > 8: sleep_time += 0.05
             
-            final = random.choice(candidates)
-            st.session_state.slot_result = final
+            # 최종 결정
+            st.session_state.slot_result = random.choice(candidates)
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('<div class="lever-stick"></div>', unsafe_allow_html=True)
             
-    else:
-        final = st.session_state.slot_result
-        slot_display.markdown(f"""
-        <div class="slot-machine" style="border-color:#FF4B4B; box-shadow:0 0 20px #FF4B4B;">
-            <div class="slot-screen" style="color:#FF4B4B;">🎉 {final} 🎉</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        # 레버 기둥 장식
+        st.markdown('<div class="lever-stick"></div>', unsafe_allow_html=True)
+
+    # 결과가 나왔을 때만 지도 버튼 표시
+    if st.session_state.slot_result != "777":
         st.balloons()
+        final = st.session_state.slot_result
         
+        st.write("")
         col1, col2 = st.columns(2)
         col1.link_button("N 네이버지도", f"https://map.naver.com/v5/search/내주변 {final}", use_container_width=True)
         col2.link_button("K 카카오맵", f"https://map.kakao.com/link/search/내주변 {final}", use_container_width=True)
         
         st.write("")
-        if st.button("🔄 한 번 더 돌리기"):
+        if st.button("🔄 리셋", type="secondary"):
             st.session_state.slot_result = "777"
             st.rerun()
