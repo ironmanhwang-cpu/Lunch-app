@@ -76,31 +76,46 @@ st.markdown("""
         box-shadow: 0 0 0 #8a0000, 0 0 10px rgba(0,0,0,0.4) !important;
     }
 
-    /* 슬롯머신 화면 */
-    .slot-machine-container {
-        background: #222; padding: 20px; border-radius: 20px;
-        border: 8px solid #d4af37; box-shadow: inset 0 0 30px #000;
-        height: 180px; display: flex; align-items: center; justify-content: center;
-        margin-bottom: 20px;
-    }
-    .slot-viewport {
-        background-color: #fff; width: 90%; height: 100px;
-        border: 5px solid #333; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center; overflow: hidden;
-    }
-    .slot-text { font-size: 40px; font-weight: 900; color: #333; white-space: nowrap; }
-    /* [수정됨] 위에서 툭 떨어지는 애니메이션 정의 */
+    /* 4. 슬롯 화면 (수정됨: 가운데 정렬 + 낙하 애니메이션) */
     @keyframes slotDrop {
-        0% { transform: translateY(-100%); opacity: 0; } /* 위에서 안 보임 */
-        50% { opacity: 0.5; }
-        100% { transform: translateY(0); opacity: 1; }   /* 제자리 착지 */
+        0% { transform: translateY(-150%); opacity: 0; }
+        50% { opacity: 1; }
+        100% { transform: translateY(0); opacity: 1; }
     }
 
-    /* 애니메이션 적용 클래스 */
-    .slot-drop {
-        animation: slotDrop 0.15s ease-out; /* 0.15초 만에 툭 떨어짐 */
-        display: block;
+    .slot-machine-container {
+        background: #222;
+        padding: 20px;
+        border-radius: 20px;
+        border: 8px solid #d4af37;
+        box-shadow: inset 0 0 30px #000;
+        height: 180px;
+        display: flex;             /* 플렉스 박스 적용 */
+        align-items: center;       /* 수직 중앙 정렬 */
+        justify-content: center;   /* 수평 중앙 정렬 */
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    .slot-viewport {
+        background-color: #fff;
+        width: 90%;
+        height: 100px;
+        border: 5px solid #333;
+        border-radius: 10px;
+        display: flex;             /* 플렉스 박스 적용 */
+        align-items: center;       /* 수직 중앙 정렬 */
+        justify-content: center;   /* 수평 중앙 정렬 */
+        overflow: hidden;
+        position: relative;
+    }
+    .slot-text {
+        font-size: 40px;
+        font-weight: 900;
+        color: #333;
+        text-align: center;        /* 텍스트 중앙 정렬 */
+        margin: 0;                 /* 여백 제거 */
         width: 100%;
+        animation: slotDrop 0.15s ease-out forwards; /* 애니메이션 적용 */
     }
 
     /* 결과 카드 */
@@ -402,32 +417,38 @@ else:
         """, unsafe_allow_html=True)
 
         # 🔴 아케이드 버튼 & 애니메이션 로직
-        with c_button:
-            st.markdown('<div class="arcade-box">', unsafe_allow_html=True)
-            if st.button("GO!", key="arcade_btn"):
-                candidates = df_logic['메뉴명'].tolist()
+        # [수정됨] 버튼 클릭 및 애니메이션 로직
+    with c_button:
+        st.markdown('<div class="arcade-box">', unsafe_allow_html=True)
+        if st.button("GO!", key="arcade_btn"):
+            candidates = df_logic['메뉴명'].tolist()
+            
+            # 속도 조절 (점점 느려짐)
+            delays = [0.05]*10 + [0.1]*5 + [0.2]*3 + [0.4]*2
+            
+            for d in delays:
+                temp = random.choice(candidates)
                 
-                # ⚙️ 물리 엔진 (점점 느려짐)
-                delays = [0.02]*10 + [0.05]*10 + [0.1]*5 + [0.3]*3 + [0.5]*1
+                # 🔥 핵심: 매번 새로운 ID를 만들어서 HTML에 넣음 -> 애니메이션 리셋됨
+                random_id = random.randint(0, 1000000)
                 
-                for d in delays:
-                    temp = random.choice(candidates)
-                    
-                    # 🔥 [핵심 수정] blur-effect 대신 slot-drop 사용!
-                    slot_placeholder.markdown(f"""
-                    <div class="slot-machine-container">
-                        <div class="slot-viewport">
-                            <div class="slot-text slot-drop" style="color:#555;">{temp}</div>
+                slot_placeholder.markdown(f"""
+                <div class="slot-machine-container">
+                    <div class="slot-viewport">
+                        <div id="slot-{random_id}" class="slot-text" style="color:#555;">
+                            {temp}
                         </div>
                     </div>
-                    """, unsafe_allow_html=True)
-                    
-                    time.sleep(d)
+                </div>
+                """, unsafe_allow_html=True)
                 
-                # 최종 결과 저장 및 리런
-                st.session_state.slot_result = random.choice(candidates)
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+                time.sleep(d)
+            
+            # 최종 결과
+            st.session_state.slot_result = random.choice(candidates)
+            st.rerun()
+            
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # [상태 2] 결과가 나왔을 때 (else 부분)
     else:
