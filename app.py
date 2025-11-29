@@ -89,7 +89,19 @@ st.markdown("""
         display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
     .slot-text { font-size: 40px; font-weight: 900; color: #333; white-space: nowrap; }
-    .blur-effect { filter: blur(4px); opacity: 0.7; transform: scale(0.95); }
+    /* [수정됨] 위에서 툭 떨어지는 애니메이션 정의 */
+    @keyframes slotDrop {
+        0% { transform: translateY(-100%); opacity: 0; } /* 위에서 안 보임 */
+        50% { opacity: 0.5; }
+        100% { transform: translateY(0); opacity: 1; }   /* 제자리 착지 */
+    }
+
+    /* 애니메이션 적용 클래스 */
+    .slot-drop {
+        animation: slotDrop 0.15s ease-out; /* 0.15초 만에 툭 떨어짐 */
+        display: block;
+        width: 100%;
+    }
 
     /* 결과 카드 */
     .result-card {
@@ -377,47 +389,68 @@ if st.session_state.mode == 'logic':
 else:
     st.subheader("🎰 운명의 룰렛")
     
+    # 레이아웃 나누기
     c_screen, c_button = st.columns([6.5, 3.5])
     slot_placeholder = c_screen.empty()
     
+    # [상태 1] 아직 안 돌렸을 때 (초기화면 '777')
     if st.session_state.slot_result == "777":
         slot_placeholder.markdown("""
         <div class="slot-machine-container">
             <div class="slot-viewport"><div class="slot-text">🎰 777 🎰</div></div>
         </div>
         """, unsafe_allow_html=True)
+
+        # 🔴 아케이드 버튼 & 애니메이션 로직
+        with c_button:
+            st.markdown('<div class="arcade-box">', unsafe_allow_html=True)
+            if st.button("GO!", key="arcade_btn"):
+                candidates = df_logic['메뉴명'].tolist()
+                
+                # ⚙️ 물리 엔진 (점점 느려짐)
+                delays = [0.02]*10 + [0.05]*10 + [0.1]*5 + [0.3]*3 + [0.5]*1
+                
+                for d in delays:
+                    temp = random.choice(candidates)
+                    
+                    # 🔥 [핵심 수정] blur-effect 대신 slot-drop 사용!
+                    slot_placeholder.markdown(f"""
+                    <div class="slot-machine-container">
+                        <div class="slot-viewport">
+                            <div class="slot-text slot-drop" style="color:#555;">{temp}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    time.sleep(d)
+                
+                # 최종 결과 저장 및 리런
+                st.session_state.slot_result = random.choice(candidates)
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    # [상태 2] 결과가 나왔을 때 (else 부분)
     else:
         final = st.session_state.slot_result
+        
+        # 결과 화면 표시
         slot_placeholder.markdown(f"""
         <div class="slot-machine-container" style="border-color:#FF4B4B;">
-            <div class="slot-viewport"><div class="slot-text" style="color:#FF4B4B;">🎉 {final} 🎉</div></div>
+            <div class="slot-viewport">
+                <div class="slot-text" style="color:#FF4B4B;">🎉 {final} 🎉</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-
-    with c_button:
-        st.markdown('<div class="arcade-box">', unsafe_allow_html=True)
-        if st.button("GO!", key="arcade_btn"):
-            candidates = df_logic['메뉴명'].tolist()
-            delays = [0.05]*10 + [0.1]*5 + [0.2]*3 + [0.4]*2
-            for d in delays:
-                temp = random.choice(candidates)
-                slot_placeholder.markdown(f"""
-                <div class="slot-machine-container">
-                    <div class="slot-viewport"><div class="slot-text blur-effect">{temp}</div></div>
-                </div>
-                """, unsafe_allow_html=True)
-                time.sleep(d)
-            st.session_state.slot_result = random.choice(candidates)
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    if st.session_state.slot_result != "777":
+        
         st.balloons()
-        final = st.session_state.slot_result
+        
+        # 지도 버튼 표시
         st.write("")
         col1, col2 = st.columns(2)
         col1.link_button("N 네이버지도", f"https://map.naver.com/v5/search/내주변 {final}", use_container_width=True)
         col2.link_button("K 카카오맵", f"https://map.kakao.com/link/search/내주변 {final}", use_container_width=True)
+        
+        # 리셋 버튼
         st.write("")
         if st.button("🔄 리셋", type="secondary"):
             st.session_state.slot_result = "777"
