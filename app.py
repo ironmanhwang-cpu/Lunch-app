@@ -4,110 +4,117 @@ import random
 import time
 from datetime import datetime, timedelta
 
-# ==========================================
 # 1. 페이지 설정
-# ==========================================
 st.set_page_config(page_title="오늘의 메뉴", layout="centered")
 
 # ==========================================
-# 2. CSS 디자인 (토글 + 버튼 + 슬롯머신)
+# 2. CSS 디자인 (버튼 복구 + 토글 스타일링)
 # ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
     html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
 
-    /* [핵심] 라디오 버튼을 '토글 스위치'처럼 꾸미기 */
+    /* 1. [수정됨] 토글 스위치 (라디오 버튼 커스텀) */
     div.row-widget.stRadio > div {
-        flex-direction: row;
-        justify-content: center;
         background-color: #f0f2f6;
         border-radius: 15px;
         padding: 5px;
+        display: flex;
+        justify-content: space-between;
     }
     div.row-widget.stRadio > div > label {
         background-color: transparent;
-        padding: 10px 20px;
         width: 100%;
         text-align: center;
         border-radius: 10px;
         cursor: pointer;
-        transition: all 0.3s;
+        padding: 10px 0;
         font-weight: bold;
         font-size: 18px;
-        border: none;
-        margin: 0 2px;
+        transition: background-color 0.3s;
+        margin: 0;
     }
-    /* 선택된 항목 강조 (빨간색) */
-    div.row-widget.stRadio > div > label[data-baseweb="radio"] > div:first-child {
-        display: none; /* 원래 라디오 동그라미 숨김 */
-    }
-    /* 체크된 상태의 배경색 변경은 스트림릿 기본 테마를 따르지만, 
-       텍스트 강조를 위해 아래 설정을 추가합니다. */
-
-    /* 일반 버튼 스타일 */
+    /* 선택된 항목의 동그라미 숨기기 */
+    div.row-widget.stRadio > div > label > div:first-child { display: none; }
+    
+    /* 2. [수정됨] 일반 버튼 (잘림 현상 해결) */
     div.stButton > button {
-        width: 100%; height: 60px; font-size: 19px; font-weight: 700;
-        border-radius: 12px; border: 1px solid #ddd; background-color: #fff;
-        transition: all 0.2s;
+        width: 100%; 
+        height: 60px; 
+        font-size: 18px; 
+        font-weight: 700;
+        border-radius: 12px !important; /* 사방 둥글게 */
+        border: 1px solid #ddd !important; /* 테두리 복구 */
+        border-bottom: 1px solid #ddd !important; /* 밑변 복구 */
+        background-color: #fff;
+        color: #333;
+        transition: all 0.1s;
     }
     div.stButton > button:hover {
-        border-color: #FF4B4B; color: #FF4B4B;
+        border-color: #FF4B4B !important;
+        color: #FF4B4B !important;
+        background-color: #fff !important;
     }
-    /* 선택된 버튼 (Primary) */
+    /* 선택된 버튼 강조 */
     div.stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-        color: white !important; border: none;
+        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%) !important;
+        color: white !important;
+        border: none !important;
         box-shadow: 0 4px 10px rgba(255, 75, 75, 0.3);
     }
 
-    /* 슬롯머신 및 아케이드 버튼 */
+    /* 3. 아케이드 버튼 (GO!) */
     .arcade-box div.stButton > button {
-        width: 110px !important; height: 110px !important;
+        width: 100px !important; height: 100px !important;
         border-radius: 50% !important;
         background: radial-gradient(circle at 30% 30%, #ff5252, #b30000) !important;
         border: 5px solid #fff !important;
-        box-shadow: 0 10px 0 #8a0000, 0 15px 20px rgba(0,0,0,0.3) !important;
-        color: white !important; font-size: 28px !important; font-weight: 900 !important;
+        box-shadow: 0 8px 0 #8a0000, 0 15px 20px rgba(0,0,0,0.3) !important;
+        color: white !important; font-size: 24px !important; font-weight: 900 !important;
         margin: 20px auto !important; display: block !important;
     }
     .arcade-box div.stButton > button:active {
-        transform: translateY(10px) !important;
+        transform: translateY(8px) !important;
         box-shadow: 0 0 0 #8a0000, 0 0 10px rgba(0,0,0,0.4) !important;
     }
 
-    /* 슬롯 애니메이션 */
+    /* 4. 슬롯 애니메이션 */
     @keyframes slotDrop {
-        0% { transform: translateY(-120%); opacity: 0; }
-        70% { transform: translateY(10%); opacity: 1; }
+        0% { transform: translateY(-150%); opacity: 0; }
+        60% { transform: translateY(10%); opacity: 1; }
+        80% { transform: translateY(-5%); }
         100% { transform: translateY(0); opacity: 1; }
     }
-    .slot-machine-container {
-        background: #222; padding: 10px; border-radius: 20px;
+    .slot-container {
+        background: #222; padding: 15px; border-radius: 20px;
         border: 8px solid #d4af37; box-shadow: inset 0 0 30px #000;
         height: 160px; display: flex; align-items: center; justify-content: center;
         margin-bottom: 20px; overflow: hidden;
     }
     .slot-viewport {
         background-color: #fff; width: 100%; height: 100%;
-        border: 4px solid #333; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center; overflow: hidden;
+        border: 4px solid #444; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; position: relative;
     }
     .slot-text {
-        font-size: 38px; font-weight: 900; color: #333; 
-        text-align: center; width: 100%; margin: 0;
+        font-size: 40px; font-weight: 900; color: #333;
+        text-align: center; width: 100%; line-height: 1;
+        margin: 0; padding: 0;
         animation: slotDrop 0.15s ease-out forwards;
     }
 
-    /* 결과 카드 */
+    /* 5. 결과 카드 */
     .result-card {
         background: var(--secondary-background-color);
         border: 2px solid #FF4B4B; border-radius: 20px;
         padding: 30px; text-align: center; margin-top: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
     .score-badge {
-        background-color: #FF4B4B; color: white; padding: 5px 10px;
-        border-radius: 15px; font-size: 14px; font-weight: bold;
+        background:#FF4B4B; color:white; padding:5px 12px; border-radius:20px; font-size:14px; font-weight:bold;
+        display: inline-block; margin-bottom: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -192,7 +199,7 @@ def load_data():
         "타코", "부리또", "퀘사디아", "화이타", "엔칠라다", "치미창가", "나초",
         "케밥", "양고기케밥", "치킨케밥", "인도커리", "버터치킨커리", "난", "갈릭난", "탄두리치킨", "라씨"
     ]
-    full_list = raw_list * 3
+    full_list = raw_list * 4 
     
     def auto_tag(m):
         spicy, temp, kind, main = "순한 맛", "뜨거운 것", "한식", "기타"
@@ -212,36 +219,43 @@ def load_data():
 df_logic = load_data()
 
 # ==========================================
-# 4. 스마트 알고리즘 (가중치 점수)
+# 4. 🔥 첨단 알고리즘 (점수 계산)
 # ==========================================
 def recommend_food(df, choices):
-    df['score'] = 0
+    # 1. 초기 점수 부여
+    df['score'] = 0.0
+    
+    # 2. 가중치 계산 (종류 > 재료 > 맵기/온도)
     df.loc[df['종류'] == choices['step3'], 'score'] += 40
     df.loc[df['주재료'] == choices['step4'], 'score'] += 30
     df.loc[df['맵기'] == choices['step1'], 'score'] += 15
     df.loc[df['온도'] == choices['step2'], 'score'] += 15
     
-    # 시간 가산점 (한국시간)
+    # 3. 시간대별 보정 (Time-Context)
     h = (datetime.utcnow() + timedelta(hours=9)).hour
-    if 5 <= h < 11:
+    if 5 <= h < 11: # 아침
         df.loc[df['주재료']=='밥', 'score'] += 5
-        df.loc[df['맵기']=='매운 맛', 'score'] -= 10
-    elif 11 <= h < 15:
+        df.loc[df['온도']=='뜨거운 것', 'score'] += 5
+    elif 11 <= h < 15: # 점심
         df.loc[df['주재료'].isin(['밥','면']), 'score'] += 5
-    elif 17 <= h:
+    elif 17 <= h: # 저녁
         df.loc[df['주재료']=='고기', 'score'] += 5
-        
-    # 랜덤 노이즈
-    df['score'] += df.apply(lambda x: random.uniform(0, 4.0), axis=1)
     
-    top = df.sort_values(by='score', ascending=False).head(20)
-    best = top.iloc[0]['score']
-    pool = top[top['score'] >= best - 15]
-    final = pool.sample(1).iloc[0]['메뉴명']
-    final_score = int(pool[pool['메뉴명']==final].iloc[0]['score'])
+    # 4. 랜덤 노이즈 (다양성)
+    df['score'] += df.apply(lambda x: random.uniform(0, 3.0), axis=1)
     
-    others = pool[pool['메뉴명'] != final].sample(min(2, len(pool)-1))['메뉴명'].tolist()
-    return final, others, final_score
+    # 상위 15개 추출
+    top = df.sort_values(by='score', ascending=False).head(15)
+    
+    # 1등 메뉴
+    best_row = top.iloc[0]
+    final_menu = best_row['메뉴명']
+    match_score = int(min(best_row['score'], 100)) # 100점 만점 처리
+    
+    # 유사 메뉴
+    others = top[top['메뉴명'] != final_menu].sample(min(2, len(top)-1))['메뉴명'].tolist()
+    
+    return final_menu, others, match_score
 
 def get_time_title():
     h = (datetime.utcnow() + timedelta(hours=9)).hour
@@ -250,7 +264,7 @@ def get_time_title():
     else: return "🌙 저메추"
 
 # ==========================================
-# 5. UI 메인 (안전한 토글 방식)
+# 5. UI 메인
 # ==========================================
 if 'choices' not in st.session_state: st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
 if 'slot_result' not in st.session_state: st.session_state.slot_result = "777"
@@ -260,9 +274,8 @@ def set_choice(step, value):
 
 st.title(get_time_title())
 
-# 🔥 [핵심 수정] 버튼 대신 라디오 버튼을 토글처럼 사용 (절대 안 사라짐)
+# 🟢 [수정 완료] 토글 스위치 (사라지지 않음)
 mode = st.radio("모드 선택", ["🚀 스스로 선택", "🎰 랜덤 룰렛"], horizontal=True, label_visibility="collapsed")
-
 st.write("")
 
 # ----------------------------
@@ -305,11 +318,14 @@ if mode == "🚀 스스로 선택":
 
     if st.session_state.choices['step4']:
         st.markdown("---")
+        
+        # 알고리즘 실행
         final, similar, score = recommend_food(df_logic, st.session_state.choices)
         
+        # [수정 완료] 점수 뱃지 추가
         st.markdown(f"""
         <div class="result-card">
-            <span class="score-badge">적합도 {min(score, 100)}%</span>
+            <span class="score-badge">취향 적합도 {score}%</span>
             <p style="color:gray; font-size:14px; margin:5px 0;">분석 결과</p>
             <h1 style="margin:10px 0; color:#FF4B4B; font-size:3em;">{final}</h1>
             <p style="opacity:0.7;">{st.session_state.choices['step1']} · {st.session_state.choices['step2']} · {st.session_state.choices['step3']}</p>
@@ -318,7 +334,6 @@ if mode == "🚀 스스로 선택":
             </p>
         </div>
         """, unsafe_allow_html=True)
-        
         st.write("")
         col1, col2 = st.columns(2)
         col1.link_button("N 네이버지도", f"https://map.naver.com/v5/search/내주변 {final}", use_container_width=True)
@@ -337,36 +352,42 @@ else:
     c_screen, c_button = st.columns([6.5, 3.5])
     slot_placeholder = c_screen.empty()
     
+    # 1. 화면 (초기)
     if st.session_state.slot_result == "777":
         slot_placeholder.markdown("""
-        <div class="slot-machine-container">
+        <div class="slot-container">
             <div class="slot-viewport"><div class="slot-text">🎰 777 🎰</div></div>
         </div>
         """, unsafe_allow_html=True)
     else:
+        # 결과
         final = st.session_state.slot_result
         slot_placeholder.markdown(f"""
-        <div class="slot-machine-container" style="border-color:#FF4B4B;">
+        <div class="slot-container" style="border-color:#FF4B4B;">
             <div class="slot-viewport"><div class="slot-text" style="color:#FF4B4B;">🎉 {final} 🎉</div></div>
         </div>
         """, unsafe_allow_html=True)
 
+    # 2. 버튼 로직
     with c_button:
         st.markdown('<div class="arcade-box">', unsafe_allow_html=True)
         if st.button("GO!", key="arcade_btn"):
             candidates = df_logic['메뉴명'].tolist()
             delays = [0.05]*10 + [0.1]*5 + [0.2]*3 + [0.4]*2
+            
             for d in delays:
                 temp = random.choice(candidates)
                 random_id = random.randint(0, 1000000)
+                
                 slot_placeholder.markdown(f"""
-                <div class="slot-machine-container">
+                <div class="slot-container">
                     <div class="slot-viewport">
-                        <div id="slot-{random_id}" class="slot-text animate-drop" style="color:#555;">{temp}</div>
+                        <div id="slot-{random_id}" class="slot-text slot-text">{temp}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 time.sleep(d)
+            
             st.session_state.slot_result = random.choice(candidates)
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
