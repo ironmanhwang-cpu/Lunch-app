@@ -404,24 +404,6 @@ if st.session_state.mode == 'logic':
 else:
     st.subheader("🎰 운명의 룰렛")
     
-    # 레이아웃 나누기
-    c_screen, c_button = st.columns([6.5, 3.5])
-    slot_placeholder = c_screen.empty()
-    
-    # [상태 1] 아직 안 돌렸을 때 (초기화면 '777')
-    if st.session_state.slot_result == "777":
-        slot_placeholder.markdown("""
-        <div class="slot-machine-container">
-            <div class="slot-viewport"><div class="slot-text">🎰 777 🎰</div></div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # ----------------------------
-# MODE 2: 랜덤 슬롯머신
-# ----------------------------
-else:
-    st.subheader("🎰 운명의 룰렛")
-    
     # 레이아웃: [슬롯화면 (6.5)] [레버 (3.5)]
     c_screen, c_button = st.columns([6.5, 3.5])
     slot_placeholder = c_screen.empty()
