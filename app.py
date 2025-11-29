@@ -9,12 +9,43 @@ from datetime import datetime, timedelta
 # ==========================================
 st.set_page_config(page_title="오늘의 메뉴", layout="centered")
 
+# ==========================================
+# 2. CSS 디자인 (토글 + 버튼 + 슬롯머신)
+# ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
     html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
 
-    /* 버튼 스타일 */
+    /* [핵심] 라디오 버튼을 '토글 스위치'처럼 꾸미기 */
+    div.row-widget.stRadio > div {
+        flex-direction: row;
+        justify-content: center;
+        background-color: #f0f2f6;
+        border-radius: 15px;
+        padding: 5px;
+    }
+    div.row-widget.stRadio > div > label {
+        background-color: transparent;
+        padding: 10px 20px;
+        width: 100%;
+        text-align: center;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: bold;
+        font-size: 18px;
+        border: none;
+        margin: 0 2px;
+    }
+    /* 선택된 항목 강조 (빨간색) */
+    div.row-widget.stRadio > div > label[data-baseweb="radio"] > div:first-child {
+        display: none; /* 원래 라디오 동그라미 숨김 */
+    }
+    /* 체크된 상태의 배경색 변경은 스트림릿 기본 테마를 따르지만, 
+       텍스트 강조를 위해 아래 설정을 추가합니다. */
+
+    /* 일반 버튼 스타일 */
     div.stButton > button {
         width: 100%; height: 60px; font-size: 19px; font-weight: 700;
         border-radius: 12px; border: 1px solid #ddd; background-color: #fff;
@@ -23,16 +54,14 @@ st.markdown("""
     div.stButton > button:hover {
         border-color: #FF4B4B; color: #FF4B4B;
     }
+    /* 선택된 버튼 (Primary) */
     div.stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
         color: white !important; border: none;
         box-shadow: 0 4px 10px rgba(255, 75, 75, 0.3);
     }
-    div.stButton > button[kind="secondary"] {
-        background-color: #f0f2f6; color: #888;
-    }
 
-    /* 슬롯머신 스타일 (아케이드 버튼 포함) */
+    /* 슬롯머신 및 아케이드 버튼 */
     .arcade-box div.stButton > button {
         width: 110px !important; height: 110px !important;
         border-radius: 50% !important;
@@ -41,14 +70,13 @@ st.markdown("""
         box-shadow: 0 10px 0 #8a0000, 0 15px 20px rgba(0,0,0,0.3) !important;
         color: white !important; font-size: 28px !important; font-weight: 900 !important;
         margin: 20px auto !important; display: block !important;
-        transition: all 0.1s !important;
     }
     .arcade-box div.stButton > button:active {
         transform: translateY(10px) !important;
         box-shadow: 0 0 0 #8a0000, 0 0 10px rgba(0,0,0,0.4) !important;
     }
 
-    /* 애니메이션 및 슬롯 화면 */
+    /* 슬롯 애니메이션 */
     @keyframes slotDrop {
         0% { transform: translateY(-120%); opacity: 0; }
         70% { transform: translateY(10%); opacity: 1; }
@@ -63,8 +91,7 @@ st.markdown("""
     .slot-viewport {
         background-color: #fff; width: 100%; height: 100%;
         border: 4px solid #333; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        overflow: hidden;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
     .slot-text {
         font-size: 38px; font-weight: 900; color: #333; 
@@ -75,24 +102,21 @@ st.markdown("""
     /* 결과 카드 */
     .result-card {
         background: var(--secondary-background-color);
-        border: 2px solid #FF4B4B; border-radius: 24px;
+        border: 2px solid #FF4B4B; border-radius: 20px;
         padding: 30px; text-align: center; margin-top: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     }
     .score-badge {
         background-color: #FF4B4B; color: white; padding: 5px 10px;
         border-radius: 15px; font-size: 14px; font-weight: bold;
-        display: inline-block; margin-bottom: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 데이터 로드 (350개+)
+# 3. 데이터 로드 (350개)
 # ==========================================
 @st.cache_data
 def load_data():
-    # (데이터 리스트는 그대로 유지 - 코드가 너무 길어지니 핵심 로직에 집중)
     raw_list = [
         # [한식]
         "김치찌개", "참치김치찌개", "돼지김치찌개", "스팸김치찌개", "꽁치김치찌개",
@@ -168,11 +192,10 @@ def load_data():
         "타코", "부리또", "퀘사디아", "화이타", "엔칠라다", "치미창가", "나초",
         "케밥", "양고기케밥", "치킨케밥", "인도커리", "버터치킨커리", "난", "갈릭난", "탄두리치킨", "라씨"
     ]
-    full_list = raw_list * 3 # 350개 이상 확보
+    full_list = raw_list * 3
     
     def auto_tag(m):
         spicy, temp, kind, main = "순한 맛", "뜨거운 것", "한식", "기타"
-        
         if any(k in m for k in ["김치","매운","짬뽕","마라","떡볶이","육개장","닭갈비","부대","탄탄","아라비아따","불족발"]): spicy="매운 맛"
         if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","쫄면","막국수","포케","육회"]): temp="차가운 것"
         if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","양꼬치","깐풍","유린","중화"]): kind="중식"
@@ -189,51 +212,37 @@ def load_data():
 df_logic = load_data()
 
 # ==========================================
-# 3. 🔥 고급 추천 알고리즘 (Context-Aware)
+# 4. 스마트 알고리즘 (가중치 점수)
 # ==========================================
 def recommend_food(df, choices):
-    # 1. 점수 초기화
-    df['score'] = 0.0
-    
-    # 2. 사용자 선택 가중치
+    df['score'] = 0
     df.loc[df['종류'] == choices['step3'], 'score'] += 40
     df.loc[df['주재료'] == choices['step4'], 'score'] += 30
     df.loc[df['맵기'] == choices['step1'], 'score'] += 15
     df.loc[df['온도'] == choices['step2'], 'score'] += 15
     
-    # 3. 시간대별 보정 (Time Bias) - 한국 시간 기준
-    current_hour = (datetime.utcnow() + timedelta(hours=9)).hour
-    
-    if 5 <= current_hour < 11: # 아침
-        df.loc[df['주재료'] == '밥', 'score'] += 5.0
-        df.loc[df['온도'] == '뜨거운 것', 'score'] += 5.0
-        df.loc[df['맵기'] == '매운 맛', 'score'] -= 10.0 # 아침 매운거 비추천
+    # 시간 가산점 (한국시간)
+    h = (datetime.utcnow() + timedelta(hours=9)).hour
+    if 5 <= h < 11:
+        df.loc[df['주재료']=='밥', 'score'] += 5
+        df.loc[df['맵기']=='매운 맛', 'score'] -= 10
+    elif 11 <= h < 15:
+        df.loc[df['주재료'].isin(['밥','면']), 'score'] += 5
+    elif 17 <= h:
+        df.loc[df['주재료']=='고기', 'score'] += 5
         
-    elif 11 <= current_hour < 15: # 점심
-        df.loc[df['주재료'].isin(['밥', '면']), 'score'] += 5.0
-        
-    elif 17 <= current_hour: # 저녁/밤
-        df.loc[df['주재료'] == '고기', 'score'] += 5.0
-        df.loc[df['맵기'] == '매운 맛', 'score'] += 5.0
-    
-    # 4. 엔트로피(Random Noise) 추가 (Tie-breaking)
-    # 점수가 같아도 매번 결과가 달라지게 함
+    # 랜덤 노이즈
     df['score'] += df.apply(lambda x: random.uniform(0, 4.0), axis=1)
     
-    # 5. 최종 순위 산정
-    df_sorted = df.sort_values(by='score', ascending=False)
+    top = df.sort_values(by='score', ascending=False).head(20)
+    best = top.iloc[0]['score']
+    pool = top[top['score'] >= best - 15]
+    final = pool.sample(1).iloc[0]['메뉴명']
+    final_score = int(pool[pool['메뉴명']==final].iloc[0]['score'])
     
-    # 1등 메뉴 선정
-    final_row = df_sorted.iloc[0]
-    final_menu = final_row['메뉴명']
-    final_score = int(final_row['score']) # 점수 표시용
-    
-    # 유사 메뉴 (2,3등)
-    others = df_sorted[df_sorted['메뉴명'] != final_menu].head(2)['메뉴명'].tolist()
-    
-    return final_menu, others, final_score
+    others = pool[pool['메뉴명'] != final].sample(min(2, len(pool)-1))['메뉴명'].tolist()
+    return final, others, final_score
 
-# 시간 제목
 def get_time_title():
     h = (datetime.utcnow() + timedelta(hours=9)).hour
     if 5 <= h < 11: return "☀️ 아메추"
@@ -241,9 +250,8 @@ def get_time_title():
     else: return "🌙 저메추"
 
 # ==========================================
-# 4. 메인 화면 & 탭
+# 5. UI 메인 (안전한 토글 방식)
 # ==========================================
-if 'mode' not in st.session_state: st.session_state.mode = 'logic'
 if 'choices' not in st.session_state: st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
 if 'slot_result' not in st.session_state: st.session_state.slot_result = "777"
 
@@ -252,22 +260,15 @@ def set_choice(step, value):
 
 st.title(get_time_title())
 
-col1, col2 = st.columns(2)
-with col1:
-    btn_type = "primary" if st.session_state.mode == 'logic' else "secondary"
-    if st.button("🚀 스스로 선택", key="tab_logic", type=btn_type):
-        st.session_state.mode = 'logic'; st.rerun()
-with col2:
-    btn_type = "primary" if st.session_state.mode == 'random' else "secondary"
-    if st.button("🎰 랜덤 룰렛", key="tab_random", type=btn_type):
-        st.session_state.mode = 'random'; st.rerun()
+# 🔥 [핵심 수정] 버튼 대신 라디오 버튼을 토글처럼 사용 (절대 안 사라짐)
+mode = st.radio("모드 선택", ["🚀 스스로 선택", "🎰 랜덤 룰렛"], horizontal=True, label_visibility="collapsed")
 
 st.write("")
 
 # ----------------------------
-# MODE 1: 스스로 선택 (알고리즘 적용)
+# MODE 1: 스스로 선택
 # ----------------------------
-if st.session_state.mode == 'logic':
+if mode == "🚀 스스로 선택":
     st.subheader("취향을 선택해주세요")
     
     c1, c2 = st.columns(2)
@@ -304,17 +305,14 @@ if st.session_state.mode == 'logic':
 
     if st.session_state.choices['step4']:
         st.markdown("---")
-        
-        # 🔥 알고리즘 실행 및 점수 받아오기
         final, similar, score = recommend_food(df_logic, st.session_state.choices)
         
-        # 결과 표시 (적합도 점수 뱃지 추가)
         st.markdown(f"""
         <div class="result-card">
             <span class="score-badge">적합도 {min(score, 100)}%</span>
             <p style="color:gray; font-size:14px; margin:5px 0;">분석 결과</p>
-            <h1 style="color:#FF4B4B; font-size:3em; margin:0;">{final}</h1>
-            <p style="opacity:0.7; margin-top:10px;">{st.session_state.choices['step1']} · {st.session_state.choices['step2']} · {st.session_state.choices['step3']}</p>
+            <h1 style="margin:10px 0; color:#FF4B4B; font-size:3em;">{final}</h1>
+            <p style="opacity:0.7;">{st.session_state.choices['step1']} · {st.session_state.choices['step2']} · {st.session_state.choices['step3']}</p>
             <p style="background:rgba(128,128,128,0.1); padding:10px; border-radius:10px; margin-top:15px; color:var(--text-color);">
                 🤔 <b>다른 추천:</b> {', '.join(similar)}
             </p>
@@ -325,7 +323,6 @@ if st.session_state.mode == 'logic':
         col1, col2 = st.columns(2)
         col1.link_button("N 네이버지도", f"https://map.naver.com/v5/search/내주변 {final}", use_container_width=True)
         col2.link_button("K 카카오맵", f"https://map.kakao.com/link/search/내주변 {final}", use_container_width=True)
-        
         st.write("")
         if st.button("🔄 다시 하기"): 
             st.session_state.choices = {'step1':None,'step2':None,'step3':None,'step4':None}
@@ -343,18 +340,14 @@ else:
     if st.session_state.slot_result == "777":
         slot_placeholder.markdown("""
         <div class="slot-machine-container">
-            <div class="slot-viewport">
-                <div class="slot-text" style="animation: none;">🎰 777 🎰</div>
-            </div>
+            <div class="slot-viewport"><div class="slot-text">🎰 777 🎰</div></div>
         </div>
         """, unsafe_allow_html=True)
     else:
         final = st.session_state.slot_result
         slot_placeholder.markdown(f"""
         <div class="slot-machine-container" style="border-color:#FF4B4B;">
-            <div class="slot-viewport">
-                <div class="slot-text" style="color:#FF4B4B; animation: none;">🎉 {final} 🎉</div>
-            </div>
+            <div class="slot-viewport"><div class="slot-text" style="color:#FF4B4B;">🎉 {final} 🎉</div></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -369,9 +362,7 @@ else:
                 slot_placeholder.markdown(f"""
                 <div class="slot-machine-container">
                     <div class="slot-viewport">
-                        <div id="slot-{random_id}" class="slot-text animate-drop" style="color:#555;">
-                            {temp}
-                        </div>
+                        <div id="slot-{random_id}" class="slot-text animate-drop" style="color:#555;">{temp}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
