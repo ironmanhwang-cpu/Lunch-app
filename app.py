@@ -14,30 +14,62 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
     html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
 
-    /* 탭 버튼 */
+    /* 1. 모든 버튼을 '온전한 둥근 사각형'으로 복구 */
     div.stButton > button {
-        width: 100%; height: 60px; font-size: 19px; font-weight: 700;
-        border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none;
-        transition: all 0.2s;
-    }
-    div.stButton > button[kind="primary"] {
-        background-color: #FF4B4B; color: white !important; 
-        border: none; transform: translateY(-3px); box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-    }
-    div.stButton > button[kind="secondary"] {
-        background-color: #f0f2f6; color: #888;
+        width: 100%; 
+        height: 65px; 
+        font-size: 20px; 
+        font-weight: 700;
+        /* [수정] 위아래 모두 둥글게 + 테두리 전체 표시 */
+        border-radius: 16px !important; 
+        border: 1px solid rgba(0,0,0,0.1) !important;
+        background-color: var(--secondary-background-color);
+        color: var(--text-color);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* 부드러운 그림자 */
+        transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+        margin-bottom: 8px; /* 버튼끼리 딱 붙지 않게 */
     }
 
-    /* 🔴 아케이드 버튼 (GO!) */
+    /* 2. 마우스 올렸을 때 (살짝 떠오름) */
+    div.stButton > button:hover {
+        transform: translateY(-3px);
+        border-color: #FF4B4B !important;
+        color: #FF4B4B !important;
+        box-shadow: 0 8px 15px rgba(255, 75, 75, 0.15);
+    }
+
+    /* 3. 선택된 버튼 (Primary) 스타일 - 그라디언트 & 눌린 효과 */
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    /* 4. 클릭 순간 (Active) - 쫀득하게 눌림 */
+    div.stButton > button:active {
+        transform: scale(0.98) translateY(0) !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+    }
+
+    /* 5. 제목 텍스트 가독성 */
+    h3 {
+        color: var(--text-color);
+        font-weight: 800;
+        margin-bottom: 15px;
+    }
+
+    /* 6. (랜덤 모드용) 🕹️ 아케이드 버튼만 원형으로 */
     .arcade-box div.stButton > button {
-        width: 110px !important; height: 110px !important;
-        border-radius: 50% !important;
+        width: 100px !important; 
+        height: 100px !important;
+        border-radius: 50% !important; /* 원형 */
         background: radial-gradient(circle at 30% 30%, #ff5252, #b30000) !important;
-        border: 5px solid #fff !important;
+        border: 4px solid #fff !important;
         box-shadow: 0 10px 0 #8a0000, 0 15px 20px rgba(0,0,0,0.3) !important;
-        color: white !important; font-size: 28px !important; font-weight: 900 !important;
-        margin: 20px auto !important; display: block !important;
-        transition: all 0.1s !important;
+        font-size: 24px !important;
+        margin: 20px auto !important;
     }
     .arcade-box div.stButton > button:active {
         transform: translateY(10px) !important;
@@ -54,18 +86,23 @@ st.markdown("""
     .slot-viewport {
         background-color: #fff; width: 90%; height: 100px;
         border: 5px solid #333; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        overflow: hidden;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
     .slot-text { font-size: 40px; font-weight: 900; color: #333; white-space: nowrap; }
     .blur-effect { filter: blur(4px); opacity: 0.7; transform: scale(0.95); }
 
     /* 결과 카드 */
     .result-card {
-        background: var(--secondary-background-color);
+        background-color: var(--secondary-background-color);
         border: 2px solid #FF4B4B; border-radius: 20px;
         padding: 30px; text-align: center; margin-top: 20px;
+        animation: popUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+    @keyframes popUp { from { transform: scale(0.9); opacity:0; } to { transform: scale(1); opacity:1; } }
+    
+    /* 프로그레스 바 */
+    .progress-container { width: 100%; height: 8px; background: rgba(0,0,0,0.05); border-radius: 10px; margin-bottom: 30px; overflow: hidden; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, #FF6B6B, #FF8E53); transition: width 0.5s; }
 </style>
 """, unsafe_allow_html=True)
 
