@@ -1,36 +1,38 @@
 import streamlit as st
 import pandas as pd
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ==========================================
 # 1. 페이지 설정
 # ==========================================
 st.set_page_config(page_title="오늘의 메뉴", layout="centered")
 
-# CSS: 깔끔한 버튼 스타일 (오류 없는 버전)
+# CSS: 깔끔한 버튼 스타일
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
     html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
     
+    /* 제목 */
+    h3 { color: var(--text-color) !important; font-weight: 700; margin-bottom: 10px; }
+    
     /* 버튼 */
     div.stButton > button {
         width: 100%; height: 60px; font-size: 18px; font-weight: bold;
-        border-radius: 12px; border: 1px solid #ddd;
-        background-color: #fff;
+        border-radius: 12px; border: 1px solid #ddd; background-color: #fff;
     }
-    div.stButton > button:hover {
-        border-color: #FF4B4B; color: #FF4B4B;
-    }
-    /* 선택된 버튼 */
-    div.stButton > button[kind="primary"] {
-        background-color: #FF4B4B; color: white !important; border: none;
-    }
+    div.stButton > button:hover { border-color: #FF4B4B; color: #FF4B4B; }
+    div.stButton > button[kind="primary"] { background-color: #FF4B4B; color: white !important; border: none; }
     
-    /* 프로그레스 바 색상 */
-    .stProgress > div > div > div > div {
-        background-color: #FF4B4B;
+    /* 프로그레스 바 */
+    .stProgress > div > div > div > div { background-color: #FF4B4B; }
+    
+    /* 결과 카드 */
+    .result-card {
+        background-color: var(--secondary-background-color);
+        border: 2px solid #FF4B4B; border-radius: 20px;
+        padding: 30px; text-align: center; margin-top: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -125,39 +127,39 @@ def load_data():
         elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","가츠","규동","사케동","오꼬노미","스시","나베","텐동","부타동","야끼","스키야키","샤브샤브","일식","후토마키","장어","오야코"]): kind="일식"
         elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","스프","라자냐","뇨끼","토스트","베이글","감바스","파니니","핫도그","바베큐","폭립","그라탕","잠봉","브런치"]): kind="양식"
         elif any(k in m for k in ["쌀국수","팟타이","나시고랭","미시고랭","분짜","타코","부리또","커리","반미","퀘사디아","케밥","화이타","똠양","난","탄두리","짜조","스프링롤","치미창가"]): kind="아시안"
-        
         if any(k in m for k in ["밥","죽","리조또","동","초밥","필라프","포케","볶음밥","덮밥","국밥","백반"]): main="밥"
         elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","팟타이","잡채","소면","스파게티"]): main="면"
         elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","족발","탕수육","돈가스","치킨","육회","찜닭","곱창","대창","막창","차돌","등심","안심","함박","동파육","불고기","두루치기","샤브샤브","케밥"]): main="고기"
         elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그","반미","타코","부리또","퀘사디아","난"]): main="빵"
         return {"메뉴명":m, "맵기":spicy, "온도":temp, "종류":kind, "주재료":main}
-    
     return pd.DataFrame([auto_tag(m) for m in raw_list])
 
 df_logic = load_data()
 
 # ==========================================
-# 3. 정밀 알고리즘 (Scoring System)
+# 3. 로직 및 UI
 # ==========================================
+if 'choices' not in st.session_state:
+    st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
+
+def set_choice(step, value):
+    st.session_state.choices[step] = value
+
+# 🧮 점수 기반 추천 알고리즘
 def recommend_food(df, choices):
     df['score'] = 0
-    # 가중치 점수 부여
-    df.loc[df['종류'] == choices['step3'], 'score'] += 40  # 장르 일치 (가장 중요)
-    df.loc[df['주재료'] == choices['step4'], 'score'] += 30 # 재료 일치
-    df.loc[df['맵기'] == choices['step1'], 'score'] += 15  # 맵기
-    df.loc[df['온도'] == choices['step2'], 'score'] += 15  # 온도
+    df.loc[df['종류'] == choices['step3'], 'score'] += 40
+    df.loc[df['주재료'] == choices['step4'], 'score'] += 30
+    df.loc[df['맵기'] == choices['step1'], 'score'] += 15
+    df.loc[df['온도'] == choices['step2'], 'score'] += 15
     
-    # 점수 높은 순으로 정렬
     top_candidates = df.sort_values(by='score', ascending=False).head(20)
-    
-    # 상위권 중 랜덤 선택 (매번 같은 거 안 나오게)
     best_score = top_candidates.iloc[0]['score']
-    # 1등과 점수 차이가 15점 이내인 후보군 형성
+    # 1등과 점수 차이가 15점 이내인 후보군에서 랜덤 (다양성 확보)
     pool = top_candidates[top_candidates['score'] >= best_score - 15]
     
     final_menu = pool.sample(1).iloc[0]['메뉴명']
     
-    # 유사 메뉴 추천 (본인 제외)
     others_pool = pool[pool['메뉴명'] != final_menu]
     if len(others_pool) >= 2:
         similar = others_pool.sample(2)['메뉴명'].tolist()
@@ -166,25 +168,22 @@ def recommend_food(df, choices):
         
     return final_menu, similar
 
-# 🕒 시간별 제목
+# 🕒 한국 시간(+9) 반영 함수
 def get_time_title():
-    h = datetime.now().hour
-    if 5 <= h < 11: return "☀️ 아메추"
-    elif 11 <= h < 17: return "🕛 점메추"
-    else: return "🌙 저메추"
+    # UTC 시간에 9시간을 더해 KST로 변환
+    utc_now = datetime.utcnow()
+    kst_now = utc_now + timedelta(hours=9)
+    h = kst_now.hour
+    
+    if 5 <= h < 11: return "☀️ 아메추 (아침)"
+    elif 11 <= h < 17: return "🕛 점메추 (점심)"
+    else: return "🌙 저메추 (저녁)"
 
-# ==========================================
-# 4. 화면 구성 (UI)
-# ==========================================
-if 'choices' not in st.session_state:
-    st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
-
-def set_choice(step, value):
-    st.session_state.choices[step] = value
+from datetime import timedelta # 상단 import에 추가
 
 # 메인 타이틀
 st.title(get_time_title())
-st.caption(f"데이터베이스: {len(df_logic)}개 메뉴 탑재 완료")
+st.caption(f"빅데이터 {len(df_logic)}개 탑재 | 한국 시간 적용됨")
 
 # 진행률
 current_step = 0
@@ -200,7 +199,7 @@ c2 = st.session_state.choices['step2']
 c3 = st.session_state.choices['step3']
 c4 = st.session_state.choices['step4']
 
-# UI 그리기 함수
+# UI 그리기
 def draw_buttons(step_key, title, options):
     st.subheader(title)
     cols = st.columns(len(options))
@@ -250,7 +249,7 @@ if c1 and c2 and c3 and c4:
     naver_url = f"https://map.naver.com/v5/search/내주변 {final_menu}"
     kakao_url = f"https://map.kakao.com/link/search/내주변 {final_menu}"
     
-    # [수정 완료] 안전한 박스 UI
+    # [안전한 박스 UI]
     with st.container(border=True):
         st.markdown(f"<p style='text-align:center; color:gray; margin-bottom:5px;'>분석 결과</p>", unsafe_allow_html=True)
         st.markdown(f"<h1 style='text-align:center; color:#FF4B4B; margin:0;'>{final_menu}</h1>", unsafe_allow_html=True)
@@ -267,7 +266,7 @@ if c1 and c2 and c3 and c4:
         st.link_button("N 네이버지도", naver_url, use_container_width=True)
     with col2:
         st.link_button("K 카카오맵", kakao_url, use_container_width=True)
-        
+    
     st.balloons()
 
     st.write("")
