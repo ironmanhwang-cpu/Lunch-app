@@ -1,49 +1,107 @@
 import streamlit as st
 import pandas as pd
 import random
+import time
 from datetime import datetime, timedelta
 
 # ==========================================
 # 1. 페이지 설정
 # ==========================================
-st.set_page_config(page_title="오늘의 메뉴", layout="centered")
+st.set_page_config(page_title="점메추 Ultimate", layout="centered")
 
-# CSS: 깔끔한 버튼 스타일
-st.markdown("""
+# 상태 초기화
+if 'mode' not in st.session_state:
+    st.session_state.mode = 'logic' # logic(점메추) or random(랜덤)
+if 'choices' not in st.session_state:
+    st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
+if 'slot_result' not in st.session_state:
+    st.session_state.slot_result = None
+
+# ==========================================
+# 2. 디자인 CSS (탭 애니메이션 & 슬롯머신)
+# ==========================================
+# 현재 모드에 따라 CSS를 동적으로 생성하여 버튼 스타일을 제어합니다.
+active_css = """
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+    color: white !important;
+    border: none;
+    z-index: 10;
+    opacity: 1;
+"""
+inactive_css = """
+    transform: translateY(0) scale(1.0);
+    box-shadow: none;
+    background-color: var(--secondary-background-color);
+    color: var(--text-color);
+    border: 1px solid rgba(128,128,128,0.2);
+    opacity: 0.6;
+    z-index: 1;
+"""
+
+# 모드에 따른 스타일 적용
+tab1_style = active_css if st.session_state.mode == 'logic' else inactive_css
+tab2_style = active_css if st.session_state.mode == 'random' else inactive_css
+
+st.markdown(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+    html, body, [class*="css"] {{ font-family: 'Noto Sans KR', sans-serif; }}
+
+    /* 탭 버튼 공통 스타일 */
+    div.stButton > button {{
+        width: 100%; height: 60px; font-size: 20px; font-weight: 700;
+        border-radius: 15px 15px 5px 5px; /* 위쪽 둥글게 */
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* 쫀득한 애니메이션 */
+    }}
+
+    /* 첫 번째 버튼 (점메추) 타겟팅 */
+    div[data-testid="column"]:nth-of-type(1) div.stButton > button {{
+        {tab1_style}
+    }}
     
-    /* 제목 */
-    h3 { color: var(--text-color) !important; font-weight: 700; margin-bottom: 10px; }
-    
-    /* 버튼 */
-    div.stButton > button {
-        width: 100%; height: 60px; font-size: 18px; font-weight: bold;
-        border-radius: 12px; border: 1px solid #ddd; background-color: #fff;
-    }
-    div.stButton > button:hover { border-color: #FF4B4B; color: #FF4B4B; }
-    div.stButton > button[kind="primary"] { background-color: #FF4B4B; color: white !important; border: none; }
-    
-    /* 프로그레스 바 */
-    .stProgress > div > div > div > div { background-color: #FF4B4B; }
-    
+    /* 두 번째 버튼 (랜덤) 타겟팅 */
+    div[data-testid="column"]:nth-of-type(2) div.stButton > button {{
+        {tab2_style}
+    }}
+
+    /* 슬롯머신 창 스타일 */
+    .slot-machine-box {{
+        background-color: #222;
+        color: #0f0;
+        font-family: 'Courier New', monospace;
+        font-size: 3rem;
+        font-weight: bold;
+        text-align: center;
+        padding: 40px;
+        border-radius: 20px;
+        border: 5px solid #FF4B4B;
+        box-shadow: 0 0 30px rgba(255, 75, 75, 0.5);
+        margin-bottom: 20px;
+        text-shadow: 0 0 10px #0f0;
+    }}
+
     /* 결과 카드 */
-    .result-card {
-        background-color: var(--secondary-background-color);
-        border: 2px solid #FF4B4B; border-radius: 20px;
-        padding: 30px; text-align: center; margin-top: 20px;
-    }
+    .result-card {{
+        background: var(--secondary-background-color);
+        border: 2px solid #FF6B6B; border-radius: 24px; padding: 30px;
+        text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        animation: popUp 0.5s ease-out;
+    }}
+    @keyframes popUp {{ from {{ transform: scale(0.8); opacity: 0; }} to {{ transform: scale(1); opacity: 1; }} }}
+    
+    /* 일반 버튼 (선택지 등) */
+    .step-btn {{ margin: 5px 0; }}
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 데이터 로드 (350개 메뉴)
+# 3. 데이터 로드 (350개)
 # ==========================================
 @st.cache_data
 def load_data():
     raw_list = [
-        # [한식]
         "김치찌개", "참치김치찌개", "돼지김치찌개", "스팸김치찌개", "꽁치김치찌개",
         "된장찌개", "차돌된장찌개", "해물된장찌개", "우렁된장찌개", "냉이된장찌개", "강된장",
         "순두부찌개", "해물순두부", "햄치즈순두부", "들깨순두부", "만두순두부", "곱창순두부",
@@ -75,8 +133,6 @@ def load_data():
         "수제비", "들깨수제비", "얼큰수제비", "잔치국수", "비빔국수", "열무국수", "콩국수",
         "냉면", "물냉면", "비빔냉면", "회냉면", "평양냉면", "함흥냉면", "진주냉면",
         "막국수", "비빔막국수", "물막국수", "쫄면", "물쫄면", "비빔만두",
-        
-        # [중식]
         "짜장면", "간짜장", "삼선짜장", "쟁반짜장", "유니짜장", "사천짜장", "고추짜장",
         "짬뽕", "삼선짬뽕", "백짬뽕", "고기짬뽕", "차돌짬뽕", "굴짬뽕", "홍합짬뽕", "볶음짬뽕", "냉짬뽕", "순두부짬뽕",
         "볶음밥", "새우볶음밥", "삼선볶음밥", "게살볶음밥", "잡채밥", "마파두부밥", "유산슬밥", "잡탕밥", "고추잡채밥", "중화비빔밥",
@@ -84,8 +140,6 @@ def load_data():
         "깐풍기", "유린기", "라조기", "난자완스", "팔보채", "양장피", "유산슬", "고추잡채", "경장육사", "어향가지",
         "군만두", "물만두", "찐만두", "꽃빵", "멘보샤", "크림새우", "칠리새우", "깐쇼새우",
         "마라탕", "마라샹궈", "마라반", "훠궈", "양꼬치", "양갈비", "지삼선", "토마토계란볶음", "우육면", "탄탄면", "동파육",
-        
-        # [일식]
         "초밥", "모듬초밥", "특선초밥", "연어초밥", "광어초밥", "새우초밥", "참치초밥", "소고기초밥", "후토마키", "지라시스시",
         "회덮밥", "사케동", "연어뱃살덮밥", "규동", "가츠동", "에비동", "오야코동", "부타동", "차슈동", "장어덮밥", "우나기동", "텐동", "카이센동", "스테키동",
         "우동", "튀김우동", "유부우동", "김치우동", "냉우동", "붓카케우동", "카레우동", "크림우동", "니꾸우동",
@@ -94,8 +148,6 @@ def load_data():
         "돈가스", "등심돈가스", "안심돈가스", "치즈돈가스", "고구마치즈돈가스", "카레돈가스", "경양식돈가스", "생선가스", "멘치카츠",
         "돈가스나베", "김치나베", "밀푀유나베", "스키야키", "샤브샤브", "편백찜", "모츠나베", "창코나베",
         "일본카레", "하이라이스", "오꼬노미야끼", "타코야끼", "야끼소바",
-        
-        # [양식]
         "토마토파스타", "미트볼파스타", "해산물토마토파스타", "아라비아따", "뽀모도로",
         "크림파스타", "까르보나라", "해산물크림파스타", "베이컨크림파스타", "명란크림파스타", "빠네파스타",
         "로제파스타", "새우로제파스타", "게살로제파스타",
@@ -109,8 +161,6 @@ def load_data():
         "토스트", "프렌치토스트", "이삭토스트", "베이글", "크림치즈베이글", "연어베이글", "파니니", "핫도그",
         "샐러드", "닭가슴살샐러드", "리코타치즈샐러드", "연어샐러드", "콥샐러드", "시저샐러드", "파스타샐러드", "포케", "연어포케", "참치포케",
         "양송이스프", "콘스프", "클램차우더", "단호박스프", "감바스", "에그인헬", "샥슈카", "그라탕",
-        
-        # [아시안/기타]
         "쌀국수", "양지쌀국수", "차돌쌀국수", "매운쌀국수", "해산물쌀국수",
         "분짜", "반미", "월남쌈", "짜조", "스프링롤",
         "팟타이", "나시고랭", "미시고랭", "푸팟퐁커리", "똠양꿍", "그린커리", "레드커리", "파인애플볶음밥",
@@ -120,16 +170,15 @@ def load_data():
     
     def auto_tag(m):
         spicy, temp, kind, main = "순한 맛", "뜨거운 것", "한식", "기타"
-        
         if any(k in m for k in ["김치","매운","짬뽕","마라","떡볶이","육개장","비빔","낙지","쭈꾸미","닭갈비","얼큰","핫","사천","불족발","카라이","탄탄","똠양","감자탕","해물탕","아구찜","해물찜","닭발","고추","레드","아라비아따","화이타"]): spicy = "매운 맛"
-        if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","빙수","묵밥","포케","월남쌈","쫄면","막국수","비빔면","족발","보쌈","양장피","냉채"]): temp = "차가운 것"
+        if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","빙수","묵밥","포케","월남쌈","육회","쫄면","막국수","비빔면","족발","보쌈","양장피","냉채"]): temp = "차가운 것"
         if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","유린기","양꼬치","훠궈","멘보샤","깐풍","라조기","난자완스","팔보채","중화","어향","동파육","우육","탄탄"]): kind="중식"
         elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","가츠","규동","사케동","오꼬노미","스시","나베","텐동","부타동","야끼","스키야키","샤브샤브","일식","후토마키","장어","오야코"]): kind="일식"
         elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","스프","라자냐","뇨끼","토스트","베이글","감바스","파니니","핫도그","바베큐","폭립","그라탕","잠봉","브런치"]): kind="양식"
-        elif any(k in m for k in ["쌀국수","팟타이","나시고랭","미시고랭","분짜","타코","부리또","커리","반미","퀘사디아","케밥","화이타","똠양","난","탄두리","짜조","스프링롤","치미창가"]): kind="아시안"
+        elif any(k in m for k in ["쌀국수","팟타이","나시고랭","분짜","타코","부리또","커리","반미","퀘사디아","케밥","화이타","똠양","난","탄두리","짜조","스프링롤","치미창가"]): kind="아시안"
         if any(k in m for k in ["밥","죽","리조또","동","초밥","필라프","포케","볶음밥","덮밥","국밥","백반"]): main="밥"
-        elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","팟타이","잡채","소면","스파게티"]): main="면"
-        elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","족발","탕수육","돈가스","치킨","육회","찜닭","곱창","대창","막창","차돌","등심","안심","함박","동파육","불고기","두루치기","샤브샤브","케밥"]): main="고기"
+        elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","팟타이","잡채"]): main="면"
+        elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","족발","탕수육","돈가스","치킨","육회","찜닭","곱창","대창","막창","차돌","등심","안심","함박","동파육"]): main="고기"
         elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그","반미","타코","부리또","퀘사디아","난"]): main="빵"
         return {"메뉴명":m, "맵기":spicy, "온도":temp, "종류":kind, "주재료":main}
     return pd.DataFrame([auto_tag(m) for m in raw_list])
@@ -137,15 +186,16 @@ def load_data():
 df_logic = load_data()
 
 # ==========================================
-# 3. 로직 및 UI
+# 3. 로직 함수 (점수제 & 시간)
 # ==========================================
-if 'choices' not in st.session_state:
-    st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
+def get_time_title():
+    utc_now = datetime.utcnow()
+    kst_now = utc_now + timedelta(hours=9)
+    h = kst_now.hour
+    if 5 <= h < 11: return "☀️ 아메추 (아침)"
+    elif 11 <= h < 17: return "🕛 점메추 (점심)"
+    else: return "🌙 저메추 (저녁)"
 
-def set_choice(step, value):
-    st.session_state.choices[step] = value
-
-# 🧮 점수 기반 추천 알고리즘
 def recommend_food(df, choices):
     df['score'] = 0
     df.loc[df['종류'] == choices['step3'], 'score'] += 40
@@ -155,121 +205,156 @@ def recommend_food(df, choices):
     
     top_candidates = df.sort_values(by='score', ascending=False).head(20)
     best_score = top_candidates.iloc[0]['score']
-    # 1등과 점수 차이가 15점 이내인 후보군에서 랜덤 (다양성 확보)
     pool = top_candidates[top_candidates['score'] >= best_score - 15]
     
     final_menu = pool.sample(1).iloc[0]['메뉴명']
-    
-    others_pool = pool[pool['메뉴명'] != final_menu]
-    if len(others_pool) >= 2:
-        similar = others_pool.sample(2)['메뉴명'].tolist()
-    else:
-        similar = others_pool['메뉴명'].tolist()
-        
+    others = pool[pool['메뉴명'] != final_menu]
+    similar = others.sample(min(2, len(others)))['메뉴명'].tolist()
     return final_menu, similar
 
-# 🕒 한국 시간(+9) 반영 함수
-def get_time_title():
-    # UTC 시간에 9시간을 더해 KST로 변환
-    utc_now = datetime.utcnow()
-    kst_now = utc_now + timedelta(hours=9)
-    h = kst_now.hour
-    
-    if 5 <= h < 11: return "☀️ 아메추 (아침)"
-    elif 11 <= h < 17: return "🕛 점메추 (점심)"
-    else: return "🌙 저메추 (저녁)"
-
-from datetime import timedelta # 상단 import에 추가
-
-# 메인 타이틀
+# ==========================================
+# 4. 메인 화면 & 탭 구현
+# ==========================================
 st.title(get_time_title())
-st.caption(f"빅데이터 {len(df_logic)}개 탑재 | 한국 시간 적용됨")
 
-# 진행률
-current_step = 0
-if st.session_state.choices['step1']: current_step += 1
-if st.session_state.choices['step2']: current_step += 1
-if st.session_state.choices['step3']: current_step += 1
-if st.session_state.choices['step4']: current_step += 1
-st.progress(current_step / 4)
-
-# 선택 변수
-c1 = st.session_state.choices['step1']
-c2 = st.session_state.choices['step2']
-c3 = st.session_state.choices['step3']
-c4 = st.session_state.choices['step4']
-
-# UI 그리기
-def draw_buttons(step_key, title, options):
-    st.subheader(title)
-    cols = st.columns(len(options))
-    current = st.session_state.choices[step_key]
-    for i, opt in enumerate(options):
-        with cols[i]:
-            btn_type = "primary" if current == opt else "secondary"
-            if st.button(opt, key=step_key+opt, type=btn_type):
-                set_choice(step_key, opt)
-                st.rerun()
-
-# [1단계]
-draw_buttons('step1', "1. 맵기", ["매운 맛", "순한 맛"])
-
-# [2단계]
-if c1:
-    st.write("")
-    draw_buttons('step2', "2. 온도", ["뜨거운 것", "차가운 것"])
-
-# [3단계] - 버튼 많아서 줄바꿈 처리
-if c1 and c2:
-    st.write("")
-    st.subheader("3. 종류")
-    col_a, col_b, col_c = st.columns(3)
-    if col_a.button("한식", type="primary" if c3=="한식" else "secondary"): set_choice('step3', "한식"); st.rerun()
-    if col_b.button("중식", type="primary" if c3=="중식" else "secondary"): set_choice('step3', "중식"); st.rerun()
-    if col_c.button("일식", type="primary" if c3=="일식" else "secondary"): set_choice('step3', "일식"); st.rerun()
-    
-    col_d, col_e = st.columns(2)
-    if col_d.button("양식", type="primary" if c3=="양식" else "secondary"): set_choice('step3', "양식"); st.rerun()
-    if col_e.button("아시안", type="primary" if c3=="아시안" else "secondary"): set_choice('step3', "아시안"); st.rerun()
-
-# [4단계]
-if c1 and c2 and c3:
-    st.write("")
-    draw_buttons('step4', "4. 재료", ["밥", "면", "고기", "빵", "기타"])
-
-# [최종 결과]
-if c1 and c2 and c3 and c4:
-    st.markdown("---")
-    
-    # 알고리즘 실행
-    final_menu, similar_menus = recommend_food(df_logic, st.session_state.choices)
-    similar_text = ", ".join(similar_menus)
-    
-    # 링크 생성
-    naver_url = f"https://map.naver.com/v5/search/내주변 {final_menu}"
-    kakao_url = f"https://map.kakao.com/link/search/내주변 {final_menu}"
-    
-    # [안전한 박스 UI]
-    with st.container(border=True):
-        st.markdown(f"<p style='text-align:center; color:gray; margin-bottom:5px;'>분석 결과</p>", unsafe_allow_html=True)
-        st.markdown(f"<h1 style='text-align:center; color:#FF4B4B; margin:0;'>{final_menu}</h1>", unsafe_allow_html=True)
-        st.markdown(f"<p style='text-align:center; color:gray; opacity:0.7; margin-top:10px;'>{c1} · {c2} · {c3} · {c4}</p>", unsafe_allow_html=True)
-        
-        if similar_text:
-            st.info(f"🤔 다른 추천: {similar_text}")
-    
-    st.write("")
-    st.caption("👇 아래 버튼을 누르면 주변 식당을 찾습니다.")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.link_button("N 네이버지도", naver_url, use_container_width=True)
-    with col2:
-        st.link_button("K 카카오맵", kakao_url, use_container_width=True)
-    
-    st.balloons()
-
-    st.write("")
-    if st.button("🔄 처음부터 다시 하기", type="secondary", use_container_width=True):
-        for k in st.session_state.choices: st.session_state.choices[k] = None
+# 상단 탭 (커스텀 버튼)
+col_tab1, col_tab2 = st.columns(2)
+with col_tab1:
+    if st.button("🚀 스스로 선택", key="tab_logic"):
+        st.session_state.mode = 'logic'
         st.rerun()
+with col_tab2:
+    if st.button("🎲 랜덤 뽑기", key="tab_random"):
+        st.session_state.mode = 'random'
+        st.rerun()
+
+st.write("") # 간격
+
+# ==========================================
+# MODE 1: 스스로 선택 (Logic)
+# ==========================================
+if st.session_state.mode == 'logic':
+    st.subheader("취향을 선택해주세요")
+    
+    # 1. 맵기
+    c1, c2 = st.columns(2)
+    if c1.button("매운 맛", type="primary" if st.session_state.choices['step1']=="매운 맛" else "secondary"):
+        st.session_state.choices['step1'] = "매운 맛"; st.rerun()
+    if c2.button("순한 맛", type="primary" if st.session_state.choices['step1']=="순한 맛" else "secondary"):
+        st.session_state.choices['step1'] = "순한 맛"; st.rerun()
+    
+    # 2. 온도
+    if st.session_state.choices['step1']:
+        st.write("")
+        c1, c2 = st.columns(2)
+        if c1.button("뜨거운 것", type="primary" if st.session_state.choices['step2']=="뜨거운 것" else "secondary"):
+            st.session_state.choices['step2'] = "뜨거운 것"; st.rerun()
+        if c2.button("차가운 것", type="primary" if st.session_state.choices['step2']=="차가운 것" else "secondary"):
+            st.session_state.choices['step2'] = "차가운 것"; st.rerun()
+            
+    # 3. 종류
+    if st.session_state.choices['step2']:
+        st.write("")
+        col_list = st.columns(3)
+        opts = ["한식", "중식", "일식", "양식", "아시안"]
+        for i, opt in enumerate(opts):
+            with col_list[i%3]:
+                if st.button(opt, key=f"logic_{opt}", type="primary" if st.session_state.choices['step3']==opt else "secondary"):
+                    st.session_state.choices['step3'] = opt; st.rerun()
+                    
+    # 4. 재료
+    if st.session_state.choices['step3']:
+        st.write("")
+        col_list = st.columns(3)
+        opts = ["밥", "면", "고기", "빵", "기타"]
+        for i, opt in enumerate(opts):
+            with col_list[i%3]:
+                if st.button(opt, key=f"logic_{opt}", type="primary" if st.session_state.choices['step4']==opt else "secondary"):
+                    st.session_state.choices['step4'] = opt; st.rerun()
+
+    # 결과
+    if st.session_state.choices['step4']:
+        st.markdown("---")
+        final, similar = recommend_food(df_logic, st.session_state.choices)
+        
+        # 지도 링크
+        naver = f"https://map.naver.com/v5/search/내주변 {final}"
+        kakao = f"https://map.kakao.com/link/search/내주변 {final}"
+        
+        st.markdown(f"""
+        <div class="result-card">
+            <p style="color:gray;">분석 결과</p>
+            <h1 style="color:#FF4B4B; font-size:3em; margin:10px;">{final}</h1>
+            <p>{', '.join(similar)} 도 추천해요!</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.write("")
+        col1, col2 = st.columns(2)
+        col1.link_button("N 네이버지도", naver, use_container_width=True)
+        col2.link_button("K 카카오맵", kakao, use_container_width=True)
+        
+        st.write("")
+        if st.button("🔄 다시 하기", type="secondary", use_container_width=True):
+            st.session_state.choices = {'step1':None,'step2':None,'step3':None,'step4':None}
+            st.rerun()
+
+# ==========================================
+# MODE 2: 랜덤 슬롯머신 (Random)
+# ==========================================
+else:
+    st.subheader("🎲 운명의 슬롯머신")
+    
+    # 슬롯머신 컨테이너
+    slot_box = st.empty()
+    
+    # 아직 안 돌렸을 때
+    if st.session_state.slot_result is None:
+        slot_box.markdown(f"""
+        <div class="slot-machine-box">
+            🎰 777 🎰
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.write("")
+        if st.button("🎰 레버 당기기 (START)", type="primary", use_container_width=True):
+            # 애니메이션 효과 (점점 느려지게)
+            candidates = df_logic['메뉴명'].tolist()
+            sleep_time = 0.05
+            for _ in range(15):
+                temp_pick = random.choice(candidates)
+                slot_box.markdown(f"""
+                <div class="slot-machine-box" style="color: #555; border-color: #555;">
+                    {temp_pick}
+                </div>
+                """, unsafe_allow_html=True)
+                time.sleep(sleep_time)
+                sleep_time += 0.02 # 점점 느려짐
+            
+            # 최종 결과
+            final_pick = random.choice(candidates)
+            st.session_state.slot_result = final_pick
+            st.rerun()
+            
+    # 결과 나왔을 때
+    else:
+        final = st.session_state.slot_result
+        slot_box.markdown(f"""
+        <div class="slot-machine-box" style="border-color: #0f0; color: #FF4B4B; text-shadow: 0 0 10px #FF4B4B;">
+            🎉 {final} 🎉
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.balloons()
+        
+        naver = f"https://map.naver.com/v5/search/내주변 {final}"
+        kakao = f"https://map.kakao.com/link/search/내주변 {final}"
+        
+        col1, col2 = st.columns(2)
+        col1.link_button("N 네이버지도", naver, use_container_width=True)
+        col2.link_button("K 카카오맵", kakao, use_container_width=True)
+        
+        st.write("")
+        if st.button("🔄 한 번 더 돌리기", type="secondary", use_container_width=True):
+            st.session_state.slot_result = None
+            st.rerun()
