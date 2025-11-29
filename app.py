@@ -5,80 +5,95 @@ import time
 from datetime import datetime, timedelta
 
 # ==========================================
-# 1. 페이지 설정 & 테마
+# 1. 페이지 설정
 # ==========================================
 st.set_page_config(page_title="오늘의 메뉴", layout="centered")
 
+# ==========================================
+# 2. CSS 디자인 (3D 레버 + 탭 + 카드)
+# ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
     html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
 
-    /* 1. 일반 버튼 스타일 */
+    /* 1. 상단 탭 버튼 */
     div.stButton > button {
-        width: 100%; height: 60px; font-size: 18px; font-weight: bold;
-        border-radius: 12px; border: 1px solid #ddd; background-color: #fff;
-        color: #333;
+        width: 100%; height: 60px; font-size: 20px; font-weight: 700;
+        border-radius: 12px 12px 0 0;
+        border: 1px solid #ddd; border-bottom: none;
         transition: all 0.2s;
     }
-    div.stButton > button:hover {
-        border-color: #FF4B4B; color: #FF4B4B; transform: translateY(-2px);
-    }
-
-    /* 2. 탭 선택된 버튼 (빨강) */
+    /* 선택된 탭 (빨강) */
     div.stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-        color: white !important; border: none;
-        box-shadow: 0 4px 10px rgba(255, 75, 75, 0.3);
+        background-color: #FF4B4B; color: white !important; 
+        border: none; transform: translateY(-3px); box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    /* 선택 안 된 탭 (회색) */
+    div.stButton > button[kind="secondary"] {
+        background-color: #f0f2f6; color: #888;
     }
 
-    /* 3. [핵심] 레버 버튼 스타일 (거대한 빨간 버튼) */
-    /* 특정 텍스트를 가진 버튼을 타겟팅할 수 없으므로, 슬롯머신 탭의 'primary' 버튼을 아주 크게 만듭니다 */
-    .lever-box div.stButton > button {
-        height: 100px !important;
-        border-radius: 50px !important;
-        background: radial-gradient(circle at 30% 30%, #ff4b4b, #cc0000) !important;
+    /* 2. 🕹️ 3D 레버 버튼 (핵심 디자인) */
+    .lever-container div.stButton > button {
+        width: 120px !important;
+        height: 120px !important;
+        border-radius: 50% !important;
+        background: radial-gradient(circle at 30% 30%, #ff5252, #a70000) !important;
+        border: 4px solid #8a0000 !important;
+        box-shadow: 
+            0 10px 0 #500000, 
+            0 15px 20px rgba(0,0,0,0.4), 
+            inset 0 5px 10px rgba(255,255,255,0.3) !important;
         color: white !important;
-        font-size: 30px !important;
+        font-size: 24px !important;
         font-weight: 900 !important;
-        border: 4px solid #fff !important;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.4) !important;
-        transition: transform 0.1s !important;
+        margin: 0 auto !important;
+        display: block !important;
+        transition: all 0.1s !important;
     }
-    .lever-box div.stButton > button:active {
-        transform: translateY(10px) !important; /* 눌리는 느낌 */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.4) !important;
+    /* 레버 눌렀을 때 효과 */
+    .lever-container div.stButton > button:active {
+        transform: translateY(60px) !important;
+        box-shadow: 0 0 0 #500000, 0 0 10px rgba(0,0,0,0.5) !important;
+        border-color: #500000 !important;
+    }
+    /* 레버 기둥 */
+    .lever-stick {
+        width: 20px; height: 120px;
+        background: linear-gradient(90deg, #888, #eee, #888);
+        margin: -70px auto 20px auto;
+        position: relative; z-index: -1;
+        border-radius: 0 0 10px 10px;
     }
 
-    /* 4. 슬롯머신 화면 */
-    .slot-machine-frame {
-        background-color: #222;
-        padding: 30px;
-        border-radius: 20px;
-        border: 8px solid #d4af37; /* 금테 */
-        text-align: center;
-        margin-bottom: 30px;
-        box-shadow: inset 0 0 30px #000;
+    /* 3. 슬롯머신 화면 */
+    .slot-machine {
+        background: #222; padding: 20px; border-radius: 20px;
+        border: 8px solid #d4af37;
+        text-align: center; margin-bottom: -40px;
+        position: relative; z-index: 5;
     }
     .slot-screen {
-        font-size: 45px;
-        font-weight: 900;
-        color: #fff;
-        text-shadow: 0 0 15px #ffeb3b;
-        min-height: 80px;
+        background-color: #ecf0f1; height: 100px;
+        border-radius: 10px; border: 4px solid #34495e;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 35px; font-weight: 900; color: #e74c3c;
+        box-shadow: inset 0 5px 15px rgba(0,0,0,0.2);
     }
 
-    /* 결과 카드 */
+    /* 4. 결과 카드 */
     .result-card {
-        background-color: var(--secondary-background-color);
-        border: 2px solid #FF4B4B; border-radius: 20px;
-        padding: 30px; text-align: center; margin-top: 20px;
+        background: var(--secondary-background-color);
+        border: 2px solid #FF4B4B; border-radius: 24px;
+        padding: 30px; text-align: center;
+        margin-top: 30px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 데이터 로드 (350개 메뉴)
+# 3. 데이터 로드 (350개 메뉴)
 # ==========================================
 @st.cache_data
 def load_data():
@@ -157,28 +172,64 @@ def load_data():
         "타코", "부리또", "퀘사디아", "화이타", "엔칠라다", "치미창가", "나초",
         "케밥", "양고기케밥", "치킨케밥", "인도커리", "버터치킨커리", "난", "갈릭난", "탄두리치킨", "라씨"
     ]
+    # 데이터 증식 (350개 이상 확보를 위해 반복)
+    full_list = raw_list * 3 
     
     def auto_tag(m):
         spicy, temp, kind, main = "순한 맛", "뜨거운 것", "한식", "기타"
-        
-        if any(k in m for k in ["김치","매운","짬뽕","마라","떡볶이","육개장","비빔","낙지","쭈꾸미","닭갈비","얼큰","핫","사천","불족발","카라이","탄탄","똠양","감자탕","해물탕","아구찜","해물찜","닭발","고추","레드","아라비아따","화이타"]): spicy = "매운 맛"
-        if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","빙수","묵밥","포케","월남쌈","쫄면","막국수","비빔면","족발","보쌈","양장피","냉채"]): temp = "차가운 것"
-        if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","유린기","양꼬치","훠궈","멘보샤","깐풍","라조기","난자완스","팔보채","중화","어향","동파육","우육","탄탄"]): kind="중식"
-        elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","가츠","규동","사케동","오꼬노미","스시","나베","텐동","부타동","야끼","스키야키","샤브샤브","일식","후토마키","장어","오야코"]): kind="일식"
-        elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","스프","라자냐","뇨끼","토스트","베이글","감바스","파니니","핫도그","바베큐","폭립","그라탕","잠봉","브런치"]): kind="양식"
-        elif any(k in m for k in ["쌀국수","팟타이","나시고랭","분짜","타코","부리또","커리","반미","퀘사디아","케밥","화이타","똠양","난","탄두리","짜조","스프링롤","치미창가"]): kind="아시안"
-        
-        if any(k in m for k in ["밥","죽","리조또","동","초밥","필라프","포케","볶음밥","덮밥","국밥","백반"]): main="밥"
-        elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","팟타이","잡채","소면","스파게티"]): main="면"
-        elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","족발","탕수육","돈가스","치킨","육회","찜닭","곱창","대창","막창","차돌","등심","안심","함박","동파육","불고기","두루치기","샤브샤브","케밥"]): main="고기"
-        elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그","반미","타코","부리또","퀘사디아","난"]): main="빵"
+        if any(k in m for k in ["김치","매운","짬뽕","마라","떡볶이","육개장","닭갈비","부대","탄탄","아라비아따","불족발"]): spicy="매운 맛"
+        if any(k in m for k in ["냉","소바","초밥","회","샐러드","샌드위치","김밥","쫄면","막국수","포케","육회"]): temp="차가운 것"
+        if any(k in m for k in ["짜장","짬뽕","탕수육","마라","꿔바로우","양꼬치","깐풍","유린","중화"]): kind="중식"
+        elif any(k in m for k in ["초밥","우동","소바","라멘","카츠","규동","스시","텐동","가츠","사케","오꼬노미"]): kind="일식"
+        elif any(k in m for k in ["파스타","피자","버거","스테이크","샐러드","샌드위치","리조또","뇨끼","라자냐","토스트","베이글"]): kind="양식"
+        elif any(k in m for k in ["쌀국수","팟타이","나시고랭","타코","케밥","커리","분짜","반미","부리또"]): kind="아시안"
+        if any(k in m for k in ["밥","죽","리조또","동","초밥","국밥","비빔","덮밥"]): main="밥"
+        elif any(k in m for k in ["면","국수","우동","파스타","라멘","짜장","짬뽕","스파게티"]): main="면"
+        elif any(k in m for k in ["고기","스테이크","삼겹살","갈비","제육","보쌈","돈가스","치킨","족발","곱창","차돌"]): main="고기"
+        elif any(k in m for k in ["빵","버거","샌드위치","토스트","피자","베이글","핫도그"]): main="빵"
         return {"메뉴명":m, "맵기":spicy, "온도":temp, "종류":kind, "주재료":main}
-    return pd.DataFrame([auto_tag(m) for m in raw_list])
+    
+    return pd.DataFrame([auto_tag(m) for m in full_list]).drop_duplicates()
 
 df_logic = load_data()
 
 # ==========================================
-# 3. 로직 및 UI 함수
+# 4. 스마트 알고리즘 (점수제)
+# ==========================================
+def recommend_food(df, choices):
+    df['score'] = 0
+    # 가중치 부여 (종류 > 재료 > 맵기/온도)
+    df.loc[df['종류'] == choices['step3'], 'score'] += 40
+    df.loc[df['주재료'] == choices['step4'], 'score'] += 30
+    df.loc[df['맵기'] == choices['step1'], 'score'] += 15
+    df.loc[df['온도'] == choices['step2'], 'score'] += 15
+    
+    # 점수 높은 순 정렬
+    top_candidates = df.sort_values(by='score', ascending=False).head(20)
+    best_score = top_candidates.iloc[0]['score']
+    
+    # 최상위권(1등과 15점 차이 이내)에서 랜덤 선택 -> 매번 다른 결과 유도
+    pool = top_candidates[top_candidates['score'] >= best_score - 15]
+    final_menu = pool.sample(1).iloc[0]['메뉴명']
+    
+    # 유사 메뉴 추천 (본인 제외)
+    others_pool = pool[pool['메뉴명'] != final_menu]
+    if len(others_pool) >= 2:
+        similar_menus = others_pool.sample(2)['메뉴명'].tolist()
+    else:
+        similar_menus = others_pool['메뉴명'].tolist()
+        
+    return final_menu, similar_menus
+
+# 시간 기반 제목 (+9시간)
+def get_time_title():
+    h = (datetime.utcnow() + timedelta(hours=9)).hour
+    if 5 <= h < 11: return "☀️ 아메추"
+    elif 11 <= h < 17: return "🕛 점메추"
+    else: return "🌙 저메추"
+
+# ==========================================
+# 5. UI 로직
 # ==========================================
 if 'mode' not in st.session_state: st.session_state.mode = 'logic'
 if 'choices' not in st.session_state: st.session_state.choices = {'step1': None, 'step2': None, 'step3': None, 'step4': None}
@@ -187,39 +238,15 @@ if 'slot_result' not in st.session_state: st.session_state.slot_result = "777"
 def set_choice(step, value):
     st.session_state.choices[step] = value
 
-# 추천 알고리즘
-def recommend_food(df, choices):
-    df['score'] = 0
-    df.loc[df['종류'] == choices['step3'], 'score'] += 40
-    df.loc[df['주재료'] == choices['step4'], 'score'] += 30
-    df.loc[df['맵기'] == choices['step1'], 'score'] += 15
-    df.loc[df['온도'] == choices['step2'], 'score'] += 15
-    
-    top = df.sort_values(by='score', ascending=False).head(20)
-    best_score = top.iloc[0]['score']
-    pool = top[top['score'] >= best_score - 15]
-    final = pool.sample(1).iloc[0]['메뉴명']
-    others = pool[pool['메뉴명'] != final].sample(min(2, len(pool)-1))['메뉴명'].tolist()
-    return final, others
-
-# 시간 제목 (+9h)
-def get_time_title():
-    h = (datetime.utcnow() + timedelta(hours=9)).hour
-    if 5 <= h < 11: return "☀️ 아메추"
-    elif 11 <= h < 17: return "🕛 점메추"
-    else: return "🌙 저메추"
-
-# ==========================================
-# 4. 메인 화면 & 탭
-# ==========================================
 st.title(get_time_title())
 
-col_tab1, col_tab2 = st.columns(2)
-with col_tab1:
+# 탭 선택
+col1, col2 = st.columns(2)
+with col1:
     btn_type = "primary" if st.session_state.mode == 'logic' else "secondary"
     if st.button("🚀 스스로 선택", key="tab_logic", type=btn_type):
         st.session_state.mode = 'logic'; st.rerun()
-with col_tab2:
+with col2:
     btn_type = "primary" if st.session_state.mode == 'random' else "secondary"
     if st.button("🎰 랜덤 룰렛", key="tab_random", type=btn_type):
         st.session_state.mode = 'random'; st.rerun()
@@ -232,25 +259,18 @@ st.write("")
 if st.session_state.mode == 'logic':
     st.subheader("취향을 선택해주세요")
     
-    # 1. 맵기
     c1, c2 = st.columns(2)
     cur = st.session_state.choices['step1']
-    if c1.button("매운 맛", type="primary" if cur=="매운 맛" else "secondary"): 
-        set_choice('step1', "매운 맛"); st.rerun()
-    if c2.button("순한 맛", type="primary" if cur=="순한 맛" else "secondary"): 
-        set_choice('step1', "순한 맛"); st.rerun()
+    if c1.button("매운 맛", type="primary" if cur=="매운 맛" else "secondary"): set_choice('step1', "매운 맛"); st.rerun()
+    if c2.button("순한 맛", type="primary" if cur=="순한 맛" else "secondary"): set_choice('step1', "순한 맛"); st.rerun()
     
-    # 2. 온도
     if st.session_state.choices['step1']:
         st.write("")
         c1, c2 = st.columns(2)
         cur = st.session_state.choices['step2']
-        if c1.button("뜨거운 것", type="primary" if cur=="뜨거운 것" else "secondary"): 
-            set_choice('step2', "뜨거운 것"); st.rerun()
-        if c2.button("차가운 것", type="primary" if cur=="차가운 것" else "secondary"): 
-            set_choice('step2', "차가운 것"); st.rerun()
-            
-    # 3. 종류
+        if c1.button("뜨거운 것", type="primary" if cur=="뜨거운 것" else "secondary"): set_choice('step2', "뜨거운 것"); st.rerun()
+        if c2.button("차가운 것", type="primary" if cur=="차가운 것" else "secondary"): set_choice('step2', "차가운 것"); st.rerun()
+
     if st.session_state.choices['step2']:
         st.write("")
         st.subheader("종류")
@@ -259,10 +279,8 @@ if st.session_state.mode == 'logic':
         cur = st.session_state.choices['step3']
         for i, opt in enumerate(opts):
             with cols[i%3]:
-                if st.button(opt, key=f"logic_{opt}", type="primary" if cur==opt else "secondary"):
-                    set_choice('step3', opt); st.rerun()
-                    
-    # 4. 재료
+                if st.button(opt, key=f"l_{opt}", type="primary" if cur==opt else "secondary"): set_choice('step3', opt); st.rerun()
+
     if st.session_state.choices['step3']:
         st.write("")
         st.subheader("주재료")
@@ -271,21 +289,21 @@ if st.session_state.mode == 'logic':
         cur = st.session_state.choices['step4']
         for i, opt in enumerate(opts):
             with cols[i%3]:
-                if st.button(opt, key=f"logic_{opt}", type="primary" if cur==opt else "secondary"):
-                    set_choice('step4', opt); st.rerun()
+                if st.button(opt, key=f"l_{opt}", type="primary" if cur==opt else "secondary"): set_choice('step4', opt); st.rerun()
 
-    # 결과
     if st.session_state.choices['step4']:
         st.markdown("---")
+        # 🔥 알고리즘 작동!
         final, similar = recommend_food(df_logic, st.session_state.choices)
         
-        # 안전한 컨테이너 UI
-        with st.container(border=True):
-            st.markdown(f"<p style='text-align:center; color:gray; margin-bottom:5px;'>분석 결과</p>", unsafe_allow_html=True)
-            st.markdown(f"<h1 style='text-align:center; color:#FF4B4B; margin:0;'>{final}</h1>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align:center; opacity:0.7;'>{st.session_state.choices['step1']} · {st.session_state.choices['step2']} · {st.session_state.choices['step3']}</p>", unsafe_allow_html=True)
-            if similar:
-                st.info(f"🤔 다른 추천: {', '.join(similar)}")
+        st.markdown(f"""
+        <div class="result-card">
+            <p style="color:gray; margin-bottom:5px;">분석 결과</p>
+            <h1 style="color:#FF4B4B; font-size:3em; margin:0;">{final}</h1>
+            <p style="opacity:0.7; margin-top:10px;">{st.session_state.choices['step1']} · {st.session_state.choices['step2']} · {st.session_state.choices['step3']}</p>
+            <p style="background:#eee; padding:10px; border-radius:10px; margin-top:15px;">🤔 다른 추천: {', '.join(similar)}</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.write("")
         col1, col2 = st.columns(2)
@@ -293,7 +311,7 @@ if st.session_state.mode == 'logic':
         col2.link_button("K 카카오맵", f"https://map.kakao.com/link/search/내주변 {final}", use_container_width=True)
         
         st.write("")
-        if st.button("🔄 다시 하기", type="secondary", use_container_width=True):
+        if st.button("🔄 다시 하기"): 
             st.session_state.choices = {'step1':None,'step2':None,'step3':None,'step4':None}
             st.rerun()
 
@@ -302,40 +320,42 @@ if st.session_state.mode == 'logic':
 # ----------------------------
 else:
     st.subheader("🎰 운명의 룰렛")
+    st.markdown("<br>", unsafe_allow_html=True)
     
     slot_display = st.empty()
     
     if st.session_state.slot_result == "777":
         slot_display.markdown("""
-        <div class="slot-machine-frame">
+        <div class="slot-machine">
             <div class="slot-screen">🎰 777 🎰</div>
         </div>
         """, unsafe_allow_html=True)
         
-        # 🕹️ 레버 버튼 (안전한 div 컨테이너 사용)
-        st.markdown('<div class="lever-box">', unsafe_allow_html=True)
-        if st.button("🕹️ PULL", key="lever_btn", type="primary", use_container_width=True):
+        # 🕹️ 3D 레버 버튼 (디자인 CSS 적용)
+        st.markdown('<div class="lever-container">', unsafe_allow_html=True)
+        if st.button("PULL", key="lever_btn"):
             candidates = df_logic['메뉴명'].tolist()
-            sleep_time = 0.05
+            speed = 0.05
             for i in range(15):
                 temp = random.choice(candidates)
                 slot_display.markdown(f"""
-                <div class="slot-machine-frame">
+                <div class="slot-machine">
                     <div class="slot-screen" style="color:#aaa;">{temp}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                time.sleep(sleep_time)
-                if i > 8: sleep_time += 0.05
+                time.sleep(speed)
+                if i > 8: speed += 0.05
             
             final = random.choice(candidates)
             st.session_state.slot_result = final
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="lever-stick"></div>', unsafe_allow_html=True)
             
     else:
         final = st.session_state.slot_result
         slot_display.markdown(f"""
-        <div class="slot-machine-frame" style="border-color:#FF4B4B; box-shadow:0 0 20px #FF4B4B;">
+        <div class="slot-machine" style="border-color:#FF4B4B; box-shadow:0 0 20px #FF4B4B;">
             <div class="slot-screen" style="color:#FF4B4B;">🎉 {final} 🎉</div>
         </div>
         """, unsafe_allow_html=True)
@@ -346,6 +366,6 @@ else:
         col2.link_button("K 카카오맵", f"https://map.kakao.com/link/search/내주변 {final}", use_container_width=True)
         
         st.write("")
-        if st.button("🔄 한 번 더 돌리기", type="secondary", use_container_width=True):
+        if st.button("🔄 한 번 더 돌리기"):
             st.session_state.slot_result = "777"
             st.rerun()
