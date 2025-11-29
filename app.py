@@ -416,26 +416,58 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        # 🔴 아케이드 버튼 & 애니메이션 로직
-        # [수정됨] 버튼 클릭 및 애니메이션 로직
+        # ----------------------------
+# MODE 2: 랜덤 슬롯머신
+# ----------------------------
+else:
+    st.subheader("🎰 운명의 룰렛")
+    
+    # 레이아웃: [슬롯화면 (6.5)] [레버 (3.5)]
+    c_screen, c_button = st.columns([6.5, 3.5])
+    slot_placeholder = c_screen.empty()
+    
+    # 1. 화면 (정지 상태)
+    if st.session_state.slot_result == "777":
+        slot_placeholder.markdown("""
+        <div class="slot-machine-container">
+            <div class="slot-viewport">
+                <div class="slot-text" style="animation: none;">🎰 777 🎰</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # 결과 화면
+        final = st.session_state.slot_result
+        slot_placeholder.markdown(f"""
+        <div class="slot-machine-container" style="border-color:#FF4B4B;">
+            <div class="slot-viewport">
+                <div class="slot-text" style="color:#FF4B4B; animation: none;">🎉 {final} 🎉</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # 2. 버튼 및 애니메이션 로직 (수정된 부분)
     with c_button:
         st.markdown('<div class="arcade-box">', unsafe_allow_html=True)
+        
+        # 버튼 클릭
         if st.button("GO!", key="arcade_btn"):
             candidates = df_logic['메뉴명'].tolist()
             
-            # 속도 조절 (점점 느려짐)
+            # 속도 조절
             delays = [0.05]*10 + [0.1]*5 + [0.2]*3 + [0.4]*2
             
             for d in delays:
                 temp = random.choice(candidates)
                 
-                # 🔥 핵심: 매번 새로운 ID를 만들어서 HTML에 넣음 -> 애니메이션 리셋됨
+                # [핵심] 랜덤 ID를 생성해 애니메이션 강제 실행
                 random_id = random.randint(0, 1000000)
                 
+                # 'slot-drop' 클래스로 낙하 효과 적용
                 slot_placeholder.markdown(f"""
                 <div class="slot-machine-container">
                     <div class="slot-viewport">
-                        <div id="slot-{random_id}" class="slot-text" style="color:#555;">
+                        <div id="slot-{random_id}" class="slot-text slot-drop" style="color:#555;">
                             {temp}
                         </div>
                     </div>
@@ -444,34 +476,20 @@ else:
                 
                 time.sleep(d)
             
-            # 최종 결과
+            # 최종 결과 저장
             st.session_state.slot_result = random.choice(candidates)
             st.rerun()
             
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # [상태 2] 결과가 나왔을 때 (else 부분)
-    else:
-        final = st.session_state.slot_result
-        
-        # 결과 화면 표시
-        slot_placeholder.markdown(f"""
-        <div class="slot-machine-container" style="border-color:#FF4B4B;">
-            <div class="slot-viewport">
-                <div class="slot-text" style="color:#FF4B4B;">🎉 {final} 🎉</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
+    # 결과 처리 (지도 버튼 등)
+    if st.session_state.slot_result != "777":
         st.balloons()
-        
-        # 지도 버튼 표시
+        final = st.session_state.slot_result
         st.write("")
         col1, col2 = st.columns(2)
         col1.link_button("N 네이버지도", f"https://map.naver.com/v5/search/내주변 {final}", use_container_width=True)
         col2.link_button("K 카카오맵", f"https://map.kakao.com/link/search/내주변 {final}", use_container_width=True)
-        
-        # 리셋 버튼
         st.write("")
         if st.button("🔄 리셋", type="secondary"):
             st.session_state.slot_result = "777"
